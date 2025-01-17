@@ -1,6 +1,6 @@
-# Elisa eSports - Immersive Coaching Tool
+# Elisa Esports - Immersive Coaching Tool
 
-A prototype AR tool for Counter-Strike 2 coaching and refereeing, developed for Elisa eSports. This tool enables users to watch game broadcasts while accessing real-time game statistics, interacting with a 3D bird's-eye-view map, and utilizing various advanced features. This tool was developed as part of a Software Engineering Lab project for the Department of Computer Science at the University of Helsinki.
+A prototype AR tool for Counter-Strike 2 coaching and refereeing, developed for Elisa Esports. This tool enables users to watch game broadcasts while accessing real-time game statistics, interacting with a 3D bird's-eye-view map, and utilizing various advanced features. This tool was developed as part of a Software Engineering Lab project for the Department of Computer Science at the University of Helsinki.
 
 ## Implementation
 - Implemented for Meta Quest VR headsets (Android-based)
