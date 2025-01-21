@@ -64,3 +64,6 @@ crashlytics-build.properties
 # Python
 .venv
 __pycache__
+
+# Obsidian
+.obsidian
