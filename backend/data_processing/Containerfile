@@ -1,5 +1,8 @@
 FROM python:3-alpine3.15
 
+RUN apk update --no-cache
+RUN apk upgrade
+
 WORKDIR /app
 
 COPY . /app
