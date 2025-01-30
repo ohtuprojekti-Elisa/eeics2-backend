@@ -2,6 +2,9 @@
 
 A prototype AR tool for Counter-Strike 2 coaching and refereeing, developed for Elisa Esports. This tool enables users to watch game broadcasts while accessing real-time game statistics, interacting with a 3D bird's-eye-view map, and utilizing various advanced features. This tool was developed as part of a Software Engineering Lab project for the Department of Computer Science at the University of Helsinki.
 
+## Status
+[![Push backend image to Quay.io](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-quay.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-quay.yaml)
+
 ## Implementation
 - Implemented for Meta Quest VR headsets (Android-based)
 - Developed in Unity environment
