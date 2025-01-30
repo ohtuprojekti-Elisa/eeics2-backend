@@ -36,7 +36,7 @@ jobs:
       - name: Login to OpenShift
         uses: redhat-actions/oc-login@v1
         with:
-          server_url: ${{ secrets.TEST_URL }}
+          openshift_server_url: ${{ secrets.TEST_URL }}
           openshift_token: ${{ secrets.TEST_TOKEN }}
           namespace: ohtuprojekti-staging
           
