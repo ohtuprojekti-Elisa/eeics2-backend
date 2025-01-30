@@ -40,7 +40,7 @@ Note: Unity can be slow. Be patient and give it time.
 - [Architecture diagram and documentation](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/architecture.md)
 
 ### Practices
-- [Definition of Done](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/definition_of_done.md)
+- [Definition of Done](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/blob/main/docs/definition%20of%20done.md)
 
 ### For those wanting to continue this project
 - [Handover](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/handover.md)
@@ -51,4 +51,3 @@ Note: Unity can be slow. Be patient and give it time.
 
 ## Backlog
 - [Product backlog](https://github.com/orgs/ohtuprojekti-Elisa/projects/1)
-
