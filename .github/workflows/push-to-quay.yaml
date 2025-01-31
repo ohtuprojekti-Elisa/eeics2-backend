@@ -1,19 +1,4 @@
-name: Push backend image to Quay.io
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'backend/data_processing/*'
-
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v3name: Push new image to Quay.io registry
+name: Push new image to Quay.io registry
 
 on:
   push:
@@ -44,25 +29,6 @@ jobs:
         with:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
-          registry: ${{vars.QUAY_REPOSITORY}}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-          
-
-      - name: Build image
-        id: build-image
-        uses: redhat-actions/buildah-build@v2
-        with:
-          image: elisaohtuprojekti-backend
-          tags: latest
-          context: backend/data_processing/
-          containerfiles: backend/data_processing/Containerfile
-
-      - name: Push image to quay.io
-        uses: redhat-actions/push-to-registry@v2
-        with:
-          image: ${{ steps.build-image.outputs.image }}
-          tags: ${{ steps.build-image.outputs.tags }}
-          registry: ${{vars.QUAY_REGISTRY}}
+          registry: quay.io/ohtuprojekti
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
