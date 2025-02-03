@@ -45,9 +45,5 @@ Note: Unity can be slow. Be patient and give it time.
 ### For those wanting to continue this project
 - [Handover](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/handover.md)
 
-### Client meetings
-
-### Retrospectives
-
 ## Backlog
 - [Product backlog](https://github.com/orgs/ohtuprojekti-Elisa/projects/1)
