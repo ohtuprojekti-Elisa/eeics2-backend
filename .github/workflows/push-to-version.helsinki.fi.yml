@@ -1,0 +1,24 @@
+name: Push backend code to version.helsinki.fi
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/data_processing/*'
+
+jobs:
+  push:
+    name: Push to version.helsinki.fi
+    runs-on: ubuntu-latest
+    environment: production
+        
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          
+      - uses: saderi/push-to-gitlab@v1
+        with:
+            gitlab_repository: ${{ vars.GITLAB_URL }}
+            gitlab_token: ${{ secrets.GITLAB_TOKEN }}
