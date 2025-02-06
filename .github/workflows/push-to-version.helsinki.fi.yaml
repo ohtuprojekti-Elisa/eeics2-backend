@@ -1,4 +1,4 @@
-name: Push backend code to version.helsinki.fi
+name: Sync and push backend to version.helsinki.fi
 
 on:
   push:
@@ -8,17 +8,39 @@ on:
       - 'backend/data_processing/*'
 
 jobs:
-  push:
-    name: Push to version.helsinki.fi
+  sync-and-push:
+    name: Sync and push backend to version.helsinki.fi
     runs-on: ubuntu-latest
     environment: production
+
+    env:
+      SOURCE_FOLDER: 'backend'
+      TARGET_FOLDER: 'gitlab_temp'
+      WORK_ROOT: '/home/runner/work'
         
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          
-      - uses: saderi/push-to-gitlab@v1
-        with:
-            gitlab_repository: ${{ vars.GITLAB_URL }}
-            gitlab_token: ${{ secrets.GITLAB_TOKEN }}
+          fetch-depth: 1
+    
+      - name: Clone repo (main) from ${{ vars.GITLAB_URL }}
+        run: |
+            git checkout -b main
+            git clone -b main --depth 1 https://${{ vars.GITLAB_URL }}.git "$WORK_ROOT/$TARGET_FOLDER"
+
+      - name: Rsync data between repos
+        run: |
+            rsync -av --delete "$SOURCE_FOLDER" "$WORK_ROOT/$TARGET_FOLDER/"
+
+      - name: Push changes
+        run: |
+            cd "$WORK_ROOT/$TARGET_FOLDER"
+
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "actions@github.com"
+
+            git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@${{ vars.GITLAB_URL }}
+
+            git add *
+            git commit -m "Sync ${GITHUB_SHA}"
+            git push gitlab main
