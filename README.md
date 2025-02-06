@@ -5,6 +5,8 @@ A prototype AR tool for Counter-Strike 2 coaching and refereeing, developed for 
 ## Status
 [![Push backend image to Quay.io](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-quay.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-quay.yaml)
 
+[![Sync and push backend to version.helsinki.fi](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml)
+
 ## Implementation
 - Implemented for Meta Quest VR headsets (Android-based)
 - Developed in Unity environment
