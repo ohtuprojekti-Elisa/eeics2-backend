@@ -23,9 +23,8 @@ jobs:
         with:
           fetch-depth: 1
     
-      - name: Clone repo (main) from ${{ vars.GITLAB_URL }}
+      - name: Clone repo from ${{ vars.GITLAB_URL }}
         run: |
-            git checkout -b main
             git clone -b main --depth 1 https://${{ vars.GITLAB_URL }}.git "$WORK_ROOT/$TARGET_FOLDER"
 
       - name: Rsync data between repos
