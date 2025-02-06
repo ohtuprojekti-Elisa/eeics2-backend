@@ -25,7 +25,7 @@ jobs:
     
       - name: Clone repo from ${{ vars.GITLAB_URL }}
         run: |
-            git clone -b main --depth 1 https://${{ vars.GITLAB_URL }}.git "$WORK_ROOT/$TARGET_FOLDER"
+            git clone -b main --depth 1 https://oauth2:${{ secrets.GITLAB_TOKEN }}@${{ vars.GITLAB_URL }}.git "$WORK_ROOT/$TARGET_FOLDER"
 
       - name: Rsync data between repos
         run: |
