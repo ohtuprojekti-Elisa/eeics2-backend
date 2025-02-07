@@ -3,9 +3,7 @@
 A prototype AR tool for Counter-Strike 2 coaching and refereeing, developed for Elisa Esports. This tool enables users to watch game broadcasts while accessing real-time game statistics, interacting with a 3D bird's-eye-view map, and utilizing various advanced features. This tool was developed as part of a Software Engineering Lab project for the Department of Computer Science at the University of Helsinki.
 
 ## Status
-[![Push backend image to Quay.io](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-quay.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-quay.yaml)
-
-[![Sync and push backend to version.helsinki.fi](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml)
+[![Sync backend to version.helsinki.fi](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml)
 
 ## Implementation
 - Implemented for Meta Quest VR headsets (Android-based)
@@ -37,15 +35,11 @@ Note: Unity can be slow. Be patient and give it time.
 
 ## Documentation
 
-### Architecture
-- [Class diagram](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/class_diagram.md)
-- [Architecture diagram and documentation](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/architecture.md)
+### Documentation
+- [Documentation repository](https://github.com/ohtuprojekti-Elisa/suunnitteludokumentaatio)
 
 ### Practices
-- [Definition of Done](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/blob/main/docs/definition%20of%20done.md)
+- [Definition of Done](docs/definition%20of%20done.md)
 
-### For those wanting to continue this project
-- [Handover](https://github.com/NikiPOU/elisaohtuprojekti/blob/main/docs/handover.md)
-
-## Backlog
+### Backlog
 - [Product backlog](https://github.com/orgs/ohtuprojekti-Elisa/projects/1)
