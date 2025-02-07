@@ -33,10 +33,10 @@ In order to use this app, you need to fullfill the following requirements:
 7. Enter the play-mode in unity (optional: Activate the simulator to use vr controllers when testing with pc)
 Note: Unity can be slow. Be patient and give it time.
 
-## Documentation
+## Project documentation
 
-### Documentation
-- [Documentation repository](https://github.com/ohtuprojekti-Elisa/suunnitteludokumentaatio)
+### Process
+- [Documentation repository (fi)](https://github.com/ohtuprojekti-Elisa/suunnitteludokumentaatio)
 
 ### Practices
 - [Definition of Done](docs/definition%20of%20done.md)
