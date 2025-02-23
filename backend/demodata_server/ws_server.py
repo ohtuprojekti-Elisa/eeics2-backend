@@ -4,21 +4,21 @@ from tornado.websocket import WebSocketHandler
 import json
 
 
-connected_clients = set()
+connected_clients: set[WebSocketHandler] = set()
 pkg_num = 0
 
 
-class WebSocketHandler(WebSocketHandler):
+class WSHandler(WebSocketHandler):
     """
     Handles WebSocket connection events to server.
     """
 
-    def open(self, *args, **kwargs):
+    def open(self, *args: str, **kwargs: str):
         print("New WebSocket connection")
         connected_clients.add(self)
         self.write_message("Welcome to EEICT Demodata -server!")
 
-    def on_message(self, message):
+    def on_message(self, message: str | bytes):
         print(f"Received from client: {message}")
 
     def on_close(self):
@@ -35,7 +35,7 @@ def start_server():
     server_port = 8080
     server_endpoint = "demodata"
 
-    server = Application([(rf"/{server_endpoint}", WebSocketHandler)])
+    server = Application([(rf"/{server_endpoint}", WSHandler)])
 
     server.listen(server_port, server_address)
 
@@ -57,12 +57,13 @@ def stream_data():
 
     global pkg_num
     pkg_num += 1
+
     tornado.ioloop.IOLoop.current().add_callback(
         send_data_to_clients, str(pkg_num)
     )
 
 
-async def send_data_to_clients(data):
+async def send_data_to_clients(data: str | bytes):
     """
     Broadcasts JSON data to all connected WebSocket clients.
     """
@@ -70,7 +71,7 @@ async def send_data_to_clients(data):
     if connected_clients:
         for client in list(connected_clients):
             try:
-                client.write_message(data)
+                await client.write_message(data)
             except Exception:
                 connected_clients.discard(client)
 
