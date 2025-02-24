@@ -122,6 +122,7 @@ def fetch_data():
     """
     Fetches the next item from the "tick_data" and sends it to clients.
     """
+    global data_stream_callback
     global tick_data
 
     try:
@@ -134,8 +135,10 @@ def fetch_data():
         IOLoop.current().add_callback(stream_data, next_tick)
 
     except StopIteration:
-        eof_message = "EOF"
-        IOLoop.current().add_callback(stream_data, eof_message)
+        IOLoop.current().add_callback(stream_data, "EOF")
+        data_stream_callback.stop()
+
+        logging.info("Stream ended!")
 
 
 async def stream_data(tick: str):
@@ -165,7 +168,7 @@ def ticks_chopper():
     a large JSON files directly from hard-drive, without first loading it
     to main memory.
     """
-    filename = "./data/demo_testi.json"
+    filename = "./data/test_small.json"
     file_path = Path(__file__).parent / filename
 
     with open(file_path, "r") as file:
