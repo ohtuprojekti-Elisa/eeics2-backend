@@ -1,5 +1,5 @@
-import logging
 import ijson
+import logging
 from pathlib import Path
 from tornado.web import Application
 from tornado.ioloop import PeriodicCallback, IOLoop
@@ -32,7 +32,7 @@ class WSHandler(WebSocketHandler):
 
         # Send messages to client
         self.write_message("Welcome to EEICT Demodata -server!")
-        self.write_message("Starting stream.")
+        self.write_message("Starting stream...")
 
         start_data_stream()
 
@@ -48,7 +48,7 @@ class WSHandler(WebSocketHandler):
         if len(connected_clients) == 0:
             if data_stream_callback.is_running():
                 data_stream_callback.stop()
-                logging.info("Callback stopped")
+                logging.info("Streaming paused.")
 
     def total_clients(self):
         return f"Total clients: {len(connected_clients)}"
@@ -61,7 +61,7 @@ def start_server():
 
     global tick_data
 
-    tick_data = json_chopper()
+    tick_data = ticks_chopper()
 
     server_address = "0.0.0.0"
     server_port = 8080
@@ -90,6 +90,15 @@ def start_data_stream(interval_ms: float = 15.625):
     data_stream_callback.start()
 
 
+def stop_data_stream():
+    """
+    After given interval after last client has disconnected
+    server will unload the previously loaded demodata.
+    """
+
+    pass
+
+
 def fetch_data():
     """
     Fetches the next item from the "tick_data" and sends it to clients.
@@ -99,16 +108,16 @@ def fetch_data():
 
     try:
         if tick_data:
-            tick = next(tick_data)
+            next_tick = next(tick_data)
         else:
             logging.info("Data generator is not initialized.")
             return
 
-        IOLoop.current().add_callback(stream_data, tick)
+        IOLoop.current().add_callback(stream_data, next_tick)
 
     except StopIteration:
-        # logging.info("No more data to send.")
-        pass
+        eof_message = "EOF"
+        IOLoop.current().add_callback(stream_data, eof_message)
 
 
 async def stream_data(tick: str):
@@ -124,19 +133,28 @@ async def stream_data(tick: str):
                 connected_clients.discard(client)
 
 
-def json_chopper():
+def settings_reader():
     """
-    Chop JSON data to single objects with given interval.
+    Reads static information from given JSON file,
+    to be assigned to different settings values.
+    """
+
+    pass
+
+
+def ticks_chopper():
+    """
+    Chop JSON data (ticks list) to single objects with given interval.
     This function uses Ijson (Iterative JSON parse) library for reading
     a large JSON files directly from hard-drive, without first loading it
     to main memory.
     """
 
-    filename = "./data/test_small.json"
+    filename = "./data/demo_testi.json"
     file_path = Path(__file__).parent / filename
 
     with open(file_path, "r") as file:
-        for tick in ijson.items(file, "demodata.item.ticks.item"):
+        for tick in ijson.items(file, "ticks.item"):
             yield str(tick)
 
 
