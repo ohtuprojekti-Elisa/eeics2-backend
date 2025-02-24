@@ -14,22 +14,25 @@ logging.basicConfig(
 
 # Global variables
 connected_clients: set[WebSocketHandler] = set()
-data_stream_callback: PeriodicCallback
-tick_data = None
-stream_timeout = 60
+tick_fetch_interval: PeriodicCallback
+ticks = None
+stream_timeout_s = 60
 
 
 class WSHandler(WebSocketHandler):
     """
-    Handles WebSocket connection events to server.
+    Handles WebSocket connections to EEICT server.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.stream_timeout_s = stream_timeout_s
         self.stop_stream = None
-        self.stream_timeout = stream_timeout
 
     def open(self, *args: str, **kwargs: str):
+        """
+        Handles new connections.
+        """
         connected_clients.add(self)
 
         # Cancel the stop stream timeout if a new client connects
@@ -44,12 +47,12 @@ class WSHandler(WebSocketHandler):
         self.write_message("Welcome to EEICT Demodata -server!")
         self.write_message("Starting stream ...")
 
-        start_stream()
-
-    def on_message(self, message: str | bytes):
-        logging.info(f"Received from client: {message}")
+        stream_start()
 
     def on_close(self):
+        """
+        Handles closed connections.
+        """
         connected_clients.discard(self)
 
         # Client info
@@ -58,13 +61,13 @@ class WSHandler(WebSocketHandler):
 
         # Check if server has no clients
         if len(connected_clients) == 0:
-            if data_stream_callback.is_running():
-                data_stream_callback.stop()
+            if tick_fetch_interval.is_running():
+                tick_fetch_interval.stop()
                 logging.info("Streaming paused ...")
 
             # Stop JSON stream after n seconds
             self.stop_stream = IOLoop.current().call_later(
-                self.stream_timeout, timeout_stream
+                self.stream_timeout_s, stream_timeout
             )
 
     def total_clients(self):
@@ -73,7 +76,7 @@ class WSHandler(WebSocketHandler):
 
 def start_server():
     """
-    Creates and starts the EEICT Demodata server.
+    Creates and starts the EEICT server.
     """
     server_address = "0.0.0.0"
     server_port = 8080
@@ -90,60 +93,60 @@ def start_server():
     IOLoop.current().start()
 
 
-def start_stream(interval_ms: float = 15.625):
+def stream_start(interval_ms: float = 15.625):
     """
-    Stream data to clients using the given interval,
+    Streams demodata to EEICT clients using the given interval,
     in example: 64 ticks/second = 15.625 ms.
     """
-    global data_stream_callback
-    global tick_data
+    global tick_fetch_interval
+    global ticks
 
-    tick_data = ticks_chopper()
+    ticks = ticks_chopper()
 
-    data_stream_callback = PeriodicCallback(fetch_data, interval_ms)
-    data_stream_callback.start()
+    tick_fetch_interval = PeriodicCallback(fetch_tick, interval_ms)
+    tick_fetch_interval.start()
 
 
-def timeout_stream():
+def stream_timeout():
     """
-    After given interval after last client has disconnected
-    server will unload the previously loaded demodata.
+    After the last client has disconnected from EEICT server,
+    this will unload the previously loaded demodata.
     """
-    global tick_data
+    global ticks
 
-    tick_data = None
+    ticks = None
 
     logging.info(
         f"No clients connected for {stream_timeout} seconds. Resetting JSON stream."
     )
 
 
-def fetch_data():
+def fetch_tick():
     """
-    Fetches the next item from the "tick_data" and sends it to clients.
+    Fetches the next tick from the "tick_data" and sends it for streaming.
     """
-    global data_stream_callback
-    global tick_data
+    global tick_fetch_interval
+    global ticks
 
     try:
-        if tick_data:
-            next_tick = next(tick_data)
+        if ticks:
+            next_tick = next(ticks)
         else:
             logging.info("Tick stream is not initialized.")
             return
 
-        IOLoop.current().add_callback(stream_data, next_tick)
+        IOLoop.current().add_callback(stream_tick, next_tick)
 
     except StopIteration:
-        IOLoop.current().add_callback(stream_data, "EOF")
-        data_stream_callback.stop()
+        IOLoop.current().add_callback(stream_tick, "EOF")
+        tick_fetch_interval.stop()
 
         logging.info("Stream ended!")
 
 
-async def stream_data(tick: str):
+async def stream_tick(tick: str):
     """
-    Stream demodata to all connected clients.
+    Stream a single tick to all connected clients.
     """
     if connected_clients:
         for client in list(connected_clients):
@@ -163,7 +166,7 @@ def settings_reader():
 
 def ticks_chopper():
     """
-    Chop JSON data (ticks list) to single objects with given interval.
+    Chops ticks from JSON data.
     This function uses Ijson (Iterative JSON parse) library for reading
     a large JSON files directly from hard-drive, without first loading it
     to main memory.
