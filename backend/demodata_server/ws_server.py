@@ -12,33 +12,22 @@ logging.basicConfig(
 )
 
 
-# Global variables
+# Global
 connected_clients: set[WebSocketHandler] = set()
 tick_fetch_interval: PeriodicCallback
 ticks = None
-stream_timeout_s = 60
 
 
 class WSHandler(WebSocketHandler):
     """
-    Handles WebSocket connections to EEICT server.
+    Handles WebSocket connections to the EEICT server.
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.stream_timeout_s = stream_timeout_s
-        self.stop_stream = None
 
     def open(self, *args: str, **kwargs: str):
         """
         Handles new connections.
         """
         connected_clients.add(self)
-
-        # Cancel the stop stream timeout if a new client connects
-        if self.stop_stream:
-            IOLoop.current().remove_timeout(self.stop_stream)
-            self.stop_stream = None
 
         logging.info(f"New client connection: {self.request.remote_ip}")
         logging.info(f"{self.total_clients()}")
@@ -59,16 +48,7 @@ class WSHandler(WebSocketHandler):
         logging.info(f"Client connection closed: {self.request.remote_ip}")
         logging.info(f"{self.total_clients()}")
 
-        # Check if server has no clients
-        if len(connected_clients) == 0:
-            if tick_fetch_interval.is_running():
-                tick_fetch_interval.stop()
-                logging.info("Streaming paused ...")
-
-            # Stop JSON stream after n seconds
-            self.stop_stream = IOLoop.current().call_later(
-                self.stream_timeout_s, stream_timeout
-            )
+        stream_timeout()
 
     def total_clients(self):
         return f"Total clients: {len(connected_clients)}"
@@ -78,6 +58,10 @@ def start_server():
     """
     Creates and starts the EEICT server.
     """
+    global ticks
+
+    ticks = ticks_chopper()
+
     server_address = "0.0.0.0"
     server_port = 8080
     server_endpoint = "/demodata"
@@ -99,9 +83,6 @@ def stream_start(interval_ms: float = 15.625):
     in example: 64 ticks/second = 15.625 ms.
     """
     global tick_fetch_interval
-    global ticks
-
-    ticks = ticks_chopper()
 
     tick_fetch_interval = PeriodicCallback(fetch_tick, interval_ms)
     tick_fetch_interval.start()
@@ -109,16 +90,25 @@ def stream_start(interval_ms: float = 15.625):
 
 def stream_timeout():
     """
-    After the last client has disconnected from EEICT server,
-    this will unload the previously loaded demodata.
+    .
     """
-    global ticks
+    global tick_fetch_interval
+    global connected_clients
 
-    ticks = None
+    # Check if server has no clients
+    if len(connected_clients) == 0:
+        if tick_fetch_interval.is_running():
+            tick_fetch_interval.stop()
 
-    logging.info(
-        f"No clients connected for {stream_timeout} seconds. Resetting JSON stream."
-    )
+            logging.info("Streaming paused ...")
+
+
+def settings_reader():
+    """
+    Reads static information from given JSON file,
+    to be assigned to different settings values.
+    """
+    pass
 
 
 def fetch_tick():
@@ -133,6 +123,7 @@ def fetch_tick():
             next_tick = next(ticks)
         else:
             logging.info("Tick stream is not initialized.")
+            tick_fetch_interval.stop()  # remove this!
             return
 
         IOLoop.current().add_callback(stream_tick, next_tick)
@@ -156,14 +147,6 @@ async def stream_tick(tick: str):
                 connected_clients.discard(client)
 
 
-def settings_reader():
-    """
-    Reads static information from given JSON file,
-    to be assigned to different settings values.
-    """
-    pass
-
-
 def ticks_chopper():
     """
     Chops ticks from JSON data.
@@ -171,7 +154,7 @@ def ticks_chopper():
     a large JSON files directly from hard-drive, without first loading it
     to main memory.
     """
-    filename = "./data/test_small.json"
+    filename = "./data/test_large.json"
     file_path = Path(__file__).parent / filename
 
     with open(file_path, "r") as file:
