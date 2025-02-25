@@ -48,7 +48,7 @@ class WSHandler(WebSocketHandler):
         logging.info(f"Client connection closed: {self.request.remote_ip}")
         logging.info(f"{self.total_clients()}")
 
-        stream_timeout()
+        stream_pause()
 
     def total_clients(self):
         return f"Total clients: {len(connected_clients)}"
@@ -58,6 +58,7 @@ def start_server():
     """
     Creates and starts the EEICT server.
     """
+
     global ticks
 
     ticks = ticks_chopper()
@@ -82,16 +83,18 @@ def stream_start(interval_ms: float = 15.625):
     Streams demodata to EEICT clients using the given interval,
     in example: 64 ticks/second = 15.625 ms.
     """
+
     global tick_fetch_interval
 
     tick_fetch_interval = PeriodicCallback(fetch_tick, interval_ms)
     tick_fetch_interval.start()
 
 
-def stream_timeout():
+def stream_pause():
     """
-    .
+    When client disconnects, stream gets paused.
     """
+
     global tick_fetch_interval
     global connected_clients
 
@@ -108,6 +111,7 @@ def settings_reader():
     Reads static information from given JSON file,
     to be assigned to different settings values.
     """
+
     pass
 
 
@@ -115,6 +119,7 @@ def fetch_tick():
     """
     Fetches the next tick from the "tick_data" and sends it for streaming.
     """
+
     global tick_fetch_interval
     global ticks
 
@@ -139,6 +144,7 @@ async def stream_tick(tick: str):
     """
     Stream a single tick to all connected clients.
     """
+
     if connected_clients:
         for client in list(connected_clients):
             try:
@@ -154,6 +160,7 @@ def ticks_chopper():
     a large JSON files directly from hard-drive, without first loading it
     to main memory.
     """
+
     filename = "./data/test_large.json"
     file_path = Path(__file__).parent / filename
 
