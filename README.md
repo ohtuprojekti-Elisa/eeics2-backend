@@ -7,9 +7,9 @@ A prototype AR tool for Counter-Strike 2 coaching and refereeing, developed for 
 
 ## Implementation
 - Implemented for Meta Quest VR headsets (Android-based)
-- Developed in Unity environment
+- Developed in Unity environment (C#)
+- Backend code in Python and Go
 - Deployed on OpenShift
-- Backend code in Python, frontend code in C#
 - PostgreSQL database
 
 ## Instructions
@@ -19,16 +19,11 @@ In order to use this app, you need to fullfill the following requirements:
 * You have to have Counter-Strike 2 installed.
 * You need to have access to the University of Helsinki's network. Find information on connecting using VPN [here](https://helpdesk.it.helsinki.fi/en/logging-and-connections/networks/connections-outside-university).
 
-### Configuration for Counter-Strike 2
-1. Navigate to your game's configuration (cfg) folder. Example - C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg
-2. Add [this](counter_strike_2/gsi/gamestate_integration_example.cfg) configuration file to the cfg folder.
-
 ### Launching the app in Unity
 1. Clone this repository to your local device.
 2. Locate project in unityhub and download the correct unity editor build by clicking the project.
 3. Open the cloned project in Unity.
 4. (Optional) Make sure you are connected to the University of Helsinki's network. [Steps to Connect to OpenVPN](https://helpdesk.it.helsinki.fi/kirjautuminen-ja-yhteydet/verkkoyhteydet/yhteydet-yliopiston-ulkopuolelta)
-5. (Optional) Join a game in CS2 as a **spectator** OR play a demo by using playdemo command in CS2 console and downloading the demo and putting it to Counter-Strike Global Offensive/game/csgo
 6. Make sure the correct scene is selected. Go to File -> Open scene -> Scenes folder -> open Main Vr Scene.unity
 7. Enter the play-mode in unity (optional: Activate the simulator to use vr controllers when testing with pc)
 Note: Unity can be slow. Be patient and give it time.
