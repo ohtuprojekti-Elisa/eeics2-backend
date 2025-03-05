@@ -1,6 +1,8 @@
+import json
 import ijson
 import logging
 from pathlib import Path
+from decimal import Decimal
 from tornado.web import Application
 from tornado.ioloop import PeriodicCallback, IOLoop
 from tornado.websocket import WebSocketHandler
@@ -153,6 +155,22 @@ async def stream_tick(tick: str):
                 connected_clients.discard(client)
 
 
+def convert_values(obj):
+    """
+    Convert ijson mangled data back to normal (quickfix).
+    """
+
+    if isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, bool):
+        return obj
+    elif isinstance(obj, dict):
+        return {k: convert_values(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_values(v) for v in obj]
+    return obj
+
+
 def ticks_chopper():
     """
     Chops ticks from JSON data.
@@ -166,7 +184,8 @@ def ticks_chopper():
 
     with open(file_path, "r") as file:
         for tick in ijson.items(file, "ticks.item"):
-            yield str(tick)
+            cleaned_tick = convert_values(tick)
+            yield json.dumps(cleaned_tick)
 
 
 if __name__ == "__main__":
