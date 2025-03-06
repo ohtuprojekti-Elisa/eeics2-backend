@@ -157,7 +157,7 @@ async def stream_tick(tick: str):
 
 def convert_values(obj):
     """
-    Convert ijson mangled data back to normal (quickfix).
+    Recursively convert Decimal to float and ensure JSON-compliant booleans.
     """
 
     if isinstance(obj, Decimal):
@@ -174,9 +174,8 @@ def convert_values(obj):
 def ticks_chopper():
     """
     Chops ticks from JSON data.
-    This function uses Ijson (Iterative JSON parse) library for reading
-    a large JSON files directly from hard-drive, without first loading it
-    to main memory.
+    Uses Ijson (Iterative JSON parse) library to read large JSON files
+    without fully loading them into memory.
     """
 
     filename = "./data/test_large.json"

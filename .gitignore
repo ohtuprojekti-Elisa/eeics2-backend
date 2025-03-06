@@ -25,6 +25,7 @@
 *.apk
 *.aab
 *.unitypackage
+*.unitypackage.meta
 *.app
 
 # Unity3D generated file on crash reports
@@ -67,3 +68,6 @@ __pycache__
 
 # Obsidian
 .obsidian
+
+# Server specific
+**/data/**/*.json
