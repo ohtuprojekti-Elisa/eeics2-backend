@@ -10,7 +10,8 @@ from tornado.websocket import WebSocketHandler
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
@@ -32,8 +33,8 @@ class DemodataWebSocketHandler(WebSocketHandler):
 class DemodataServer:
     """Handles WebSocket connections to the EEICT server."""
 
-    def __init__(self, srv_address, srv_port, srv_endpoint):
-        self.class_name = "SERVER"
+    def __init__(self, srv_address: str, srv_port: int, srv_endpoint: str):
+        self.class_name = "SERVER"  # Temp before custom logger is implemented
         self.srv_address = srv_address
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
@@ -48,10 +49,8 @@ class DemodataServer:
     def open(self, handler: WebSocketHandler):
         """Handles new connections."""
         self.connected_clients.add(handler)
-        logging.info(
-            f"{self.class_name} - New client connection: {handler.request.remote_ip}"
-        )
-        logging.info(f"{self.class_name} - {self.total_clients()}")
+        logging.info(f"New client connection: {handler.request.remote_ip}")
+        logging.info(f"{self.total_clients()}")
         # Cancel the stop stream timeout if a new client connects
         if self.stop_stream_timeout:
             IOLoop.current().remove_timeout(self.stop_stream_timeout)
@@ -80,16 +79,14 @@ class DemodataServer:
             )
 
     def total_clients(self):
-        return (
-            f"{self.class_name} - Total clients: {len(self.connected_clients)}"
-        )
+        return f"Total clients: {len(self.connected_clients)}"
 
     def stream_start(self, interval_ms: float = 15.625):
         """
         Streams demodata to EEICT clients using the given interval,
         in example: 64 ticks/second = 15.625 ms.
         """
-        self.ticks = self.ticks_chopper()  # Ensure ticks are initialized
+        self.ticks = self.ticks_chopper()
         self.tick_fetch_interval = PeriodicCallback(
             self.fetch_tick, interval_ms
         )
@@ -163,10 +160,10 @@ class DemodataServer:
                 cleaned_tick = self.convert_values(tick)
                 yield json.dumps(cleaned_tick)
 
-    def demodata_input(self, filename):
+    def demodata_input(self, filename: Path):
         """Handles the input file for demodata."""
         self.filename = filename
-        logging.info(f"{self.class_name} - Received file: {filename}")
+        logging.info(f"{self.class_name} - Received a file '{filename}'")
 
     def start_server(self):
         """Starts the demodata server."""
