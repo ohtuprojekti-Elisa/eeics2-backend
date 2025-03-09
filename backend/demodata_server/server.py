@@ -33,6 +33,7 @@ class DemodataServer:
     """Handles WebSocket connections to the EEICT server."""
 
     def __init__(self, srv_address, srv_port, srv_endpoint):
+        self.class_name = "SERVER"
         self.srv_address = srv_address
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
@@ -47,8 +48,10 @@ class DemodataServer:
     def open(self, handler: WebSocketHandler):
         """Handles new connections."""
         self.connected_clients.add(handler)
-        logging.info(f"New client connection: {handler.request.remote_ip}")
-        logging.info(f"{self.total_clients()}")
+        logging.info(
+            f"{self.class_name} - New client connection: {handler.request.remote_ip}"
+        )
+        logging.info(f"{self.class_name} - {self.total_clients()}")
         # Cancel the stop stream timeout if a new client connects
         if self.stop_stream_timeout:
             IOLoop.current().remove_timeout(self.stop_stream_timeout)
@@ -61,21 +64,25 @@ class DemodataServer:
     def on_close(self, handler: WebSocketHandler):
         """Handles closed connections."""
         self.connected_clients.discard(handler)
-        logging.info(f"Client connection closed: {handler.request.remote_ip}")
-        logging.info(f"{self.total_clients()}")
+        logging.info(
+            f"{self.class_name} - Client connection closed: {handler.request.remote_ip}"
+        )
+        logging.info(f"{self.class_name} - {self.total_clients()}")
         # Check if server has no clients
         if len(self.connected_clients) == 0:
-            logging.info("Streaming paused ...")
+            logging.info(f"{self.class_name} - Streaming paused ...")
             # Reset tick stream after n seconds
             logging.info(
-                f"Setting stop stream timeout for {self.stream_timeout_s} seconds"
+                f"{self.class_name} - Setting stop stream timeout for {self.stream_timeout_s} seconds"
             )
             logging.info(
-                f"Stop stream timeout set: {self.stop_stream_timeout}"
+                f"{self.class_name} - Stop stream timeout set: {self.stop_stream_timeout}"
             )
 
     def total_clients(self):
-        return f"Total clients: {len(self.connected_clients)}"
+        return (
+            f"{self.class_name} - Total clients: {len(self.connected_clients)}"
+        )
 
     def stream_start(self, interval_ms: float = 15.625):
         """
@@ -93,7 +100,7 @@ class DemodataServer:
         if len(self.connected_clients) == 0:
             if self.tick_fetch_interval.is_running():
                 self.tick_fetch_interval.stop()
-                logging.info("Streaming paused ...")
+                logging.info(f"{self.class_name} - Streaming paused ...")
 
     def stream_timeout(self):
         """
@@ -102,7 +109,7 @@ class DemodataServer:
         """
         self.ticks = None
         logging.info(
-            f"No clients connected for {self.stream_timeout_s} seconds. Resetting JSON stream."
+            f"{self.class_name} - No clients connected for {self.stream_timeout_s} seconds. Resetting JSON stream."
         )
 
     def fetch_tick(self):
@@ -111,14 +118,16 @@ class DemodataServer:
             if self.ticks:
                 next_tick = next(self.ticks)
             else:
-                logging.info("Tick stream is not initialized.")
+                logging.warning(
+                    f"{self.class_name} - Tick stream is not initialized."
+                )
                 self.tick_fetch_interval.stop()
                 return
             IOLoop.current().add_callback(self.stream_tick, next_tick)
         except StopIteration:
             IOLoop.current().add_callback(self.stream_tick, "EOF")
             self.tick_fetch_interval.stop()
-            logging.info("Stream ended!")
+            logging.warning(f"{self.class_name} - Stream ended!")
 
     async def stream_tick(self, tick: str):
         """Stream a single tick to all connected clients."""
@@ -157,7 +166,7 @@ class DemodataServer:
     def demodata_input(self, filename):
         """Handles the input file for demodata."""
         self.filename = filename
-        logging.info(f"Demodata input file: {filename}")
+        logging.info(f"{self.class_name} - Received file: {filename}")
 
     def start_server(self):
         """Starts the demodata server."""
@@ -172,6 +181,6 @@ class DemodataServer:
         )
         app.listen(self.srv_port, self.srv_address)
         logging.info(
-            f"EEICT Demodata -server @ ws://{self.srv_address}:{self.srv_port}{self.srv_endpoint}"
+            f"{self.class_name} - EEICT Demodata -server @ ws://{self.srv_address}:{self.srv_port}{self.srv_endpoint}"
         )
         IOLoop.current().start()

@@ -18,6 +18,7 @@ if __name__ == "__main__":
     demodata_parser.parse_demo()
 
     # Server
+    json_filename = demodata_parser.parse_filename()
     demodata_server = DemodataServer("0.0.0.0", 8080, "/demodata")
-    demodata_server.demodata_input("./demofiles/mirage.json")
+    demodata_server.demodata_input(json_filename)
     demodata_server.start_server()

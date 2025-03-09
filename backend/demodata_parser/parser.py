@@ -12,6 +12,7 @@ class DemodataParser:
     """"""
 
     def __init__(self, filename):
+        self.class_name = "PARSER"
         self.filename = filename
         self.json_filename = self.parse_filename()
 
@@ -29,12 +30,12 @@ class DemodataParser:
         """"""
         if self.json_filename.exists():
             logging.info(
-                f"File: {self.json_filename} already exists, skipping parser!"
+                f"{self.class_name} - File: {self.json_filename} already exists, skipping!"
             )
             return
         else:
             logging.info(
-                f"Starting a new demofile parsing for: {self.filename}"
+                f"{self.class_name} - Starting a new demofile parsing for: {self.filename}"
             )
 
         # Demoparser Go-library related
@@ -45,9 +46,9 @@ class DemodataParser:
         parsing_result = demoparser.ParseDemo(self.filename)
 
         if parsing_result:
-            logging.info(f"Demofile parsing successful!")
+            logging.info(f"{self.class_name} - Demofile parsing successful!")
         else:
-            logging.warning(f"Demofile parsing failed!")
+            logging.warning(f"{self.class_name} - Demofile parsing failed!")
 
 
 if __name__ == "__main__":
