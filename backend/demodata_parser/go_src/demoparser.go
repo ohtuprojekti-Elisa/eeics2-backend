@@ -1,5 +1,11 @@
 package main
 
+/*
+#include <stdlib.h>
+#include <stdbool.h>
+*/
+import "C"
+
 import (
 	"encoding/json"
 	"fmt"
@@ -63,14 +69,16 @@ type Tick struct {
 	Nades   []Nade   `json:"nades"`
 }
 
-func main() {
-	// start := time.Now()
+//export ParseDemo
+func ParseDemo(filename *C.char) C.bool {
+	demodataFileName := C.GoString(filename)
+	jsonFileName := demodataFileName[:len(demodataFileName)-len(".dem")] + ".json"
 
-	f, err := os.Open("file_name")
+	f, err := os.Open(demodataFileName)
 	if err != nil {
 		log.Panic("failed to open demo file: ", err)
+		return C.bool(false)
 	}
-
 	defer f.Close()
 
 	p := demoinfocs.NewParser(f)
@@ -157,6 +165,7 @@ func main() {
 	err = p.ParseToEnd()
 	if err != nil {
 		log.Panic("Error parsing demo: ", err)
+		return C.bool(false)
 	}
 
 	demodata.TickRate = p.TickRate()
@@ -168,16 +177,18 @@ func main() {
 	jsonData, err := json.MarshalIndent(demodata, "", " ")
 	if err != nil {
 		fmt.Println("Error encoding JSON:", err)
-		return
+		return C.bool(false)
 	}
 
-	err = os.WriteFile("demo_testi.json", jsonData, 0644)
+	err = os.WriteFile(jsonFileName, jsonData, 0644)
 	if err != nil {
 		fmt.Println("Error writing JSON file:", err)
-		return
+		return C.bool(false)
 	}
 
-	// Time elapsed
-	// end := time.Since(start)
-	// fmt.Printf("%s", end)
+	return C.bool(true)
+}
+
+func main() {
+	// This is required to compile the shared library
 }

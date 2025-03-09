@@ -62,12 +62,17 @@ crashlytics-build.properties
 # Secrets
 .env
 
-# Python
+# Python specific
 .venv
 __pycache__
 
 # Obsidian
 .obsidian
 
-# Server specific
-**/data/**/*.json
+# Demodata server specific
+**/demofiles/**/*.dem
+**/demofiles/**/*.json
+
+# Go build specific
+demoparser.h
+*.so
