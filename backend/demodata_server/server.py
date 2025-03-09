@@ -32,10 +32,11 @@ class DemodataWebSocketHandler(WebSocketHandler):
 class DemodataServer:
     """Handles WebSocket connections to the EEICT server."""
 
-    def __init__(self, server_address, server_port, server_endpoint):
-        self.server_address = server_address
-        self.server_port = server_port
-        self.server_endpoint = server_endpoint
+    def __init__(self, srv_address, srv_port, srv_endpoint):
+        self.srv_address = srv_address
+        self.srv_port = srv_port
+        self.srv_endpoint = srv_endpoint
+        self.filename = ""
         self.connected_clients: set[WebSocketHandler] = set()
         self.tick_fetch_interval: PeriodicCallback
         self.ticks = None
@@ -88,9 +89,7 @@ class DemodataServer:
         self.tick_fetch_interval.start()
 
     def stream_pause(self):
-        """
-        When client disconnects, stream gets paused.
-        """
+        """When client disconnects,  stream gets paused."""
         if len(self.connected_clients) == 0:
             if self.tick_fetch_interval.is_running():
                 self.tick_fetch_interval.stop()
@@ -107,9 +106,7 @@ class DemodataServer:
         )
 
     def fetch_tick(self):
-        """
-        Fetches the next tick from the "tick_data" and sends it for streaming.
-        """
+        """Fetches the next tick from the "tick_data" and sends it for streaming."""
         try:
             if self.ticks:
                 next_tick = next(self.ticks)
@@ -124,9 +121,7 @@ class DemodataServer:
             logging.info("Stream ended!")
 
     async def stream_tick(self, tick: str):
-        """
-        Stream a single tick to all connected clients.
-        """
+        """Stream a single tick to all connected clients."""
         if self.connected_clients:
             for client in list(self.connected_clients):
                 try:
@@ -135,9 +130,7 @@ class DemodataServer:
                     self.connected_clients.discard(client)
 
     def convert_values(self, obj):
-        """
-        Convert ijson mangled data back to normal (quickfix).
-        """
+        """Convert ijson's mangled data back to normal (quickfix)."""
         if isinstance(obj, Decimal):
             return float(obj)
         elif isinstance(obj, bool):
@@ -149,13 +142,13 @@ class DemodataServer:
         return obj
 
     def ticks_chopper(self):
-        """
-        Chops ticks from JSON data.
+        """Chops ticks from JSON data.
+
         This function uses Ijson (Iterative JSON parse) library for reading
         a large JSON files directly from hard-drive, without first loading it
         to main memory.
         """
-        filename = "./data/test_large.json"
+        filename = self.filename
         file_path = Path(__file__).parent / filename
         with open(file_path, "r") as file:
             for tick in ijson.items(file, "ticks.item"):
@@ -164,6 +157,7 @@ class DemodataServer:
 
     def demodata_input(self, filename):
         """Handles the input file for demodata."""
+        self.filename = filename
         logging.info(f"Demodata input file: {filename}")
 
     def start_server(self):
@@ -171,14 +165,14 @@ class DemodataServer:
         app = Application(
             [
                 (
-                    self.server_endpoint,
+                    self.srv_endpoint,
                     DemodataWebSocketHandler,
                     dict(server=self),
                 )
             ]
         )
-        app.listen(self.server_port, self.server_address)
+        app.listen(self.srv_port, self.srv_address)
         logging.info(
-            f"EEICT Demodata -server @ ws://{self.server_address}:{self.server_port}{self.server_endpoint}"
+            f"EEICT Demodata -server @ ws://{self.srv_address}:{self.srv_port}{self.srv_endpoint}"
         )
         IOLoop.current().start()
