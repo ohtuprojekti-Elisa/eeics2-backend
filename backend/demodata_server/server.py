@@ -149,8 +149,7 @@ class DemodataServer:
         to main memory.
         """
         filename = self.filename
-        file_path = Path(__file__).parent / filename
-        with open(file_path, "r") as file:
+        with open(filename, "r") as file:
             for tick in ijson.items(file, "ticks.item"):
                 cleaned_tick = self.convert_values(tick)
                 yield json.dumps(cleaned_tick)
