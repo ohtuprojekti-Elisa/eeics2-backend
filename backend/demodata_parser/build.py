@@ -1,9 +1,5 @@
 import os
-from dotenv import load_dotenv
 import subprocess
-
-# Load and set .env_build
-load_dotenv(".env_build")
 
 # Build demoparser
 os.chdir("go_src")
@@ -17,4 +13,5 @@ subprocess.run(
         "demoparser.go",
     ],
     check=True,
+    env={**os.environ, "CGO_ENABLED": "1"},
 )
