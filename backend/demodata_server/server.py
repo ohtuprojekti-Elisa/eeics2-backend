@@ -180,4 +180,5 @@ class DemodataServer:
         logging.info(
             f"{self.class_name} - EEICT Demodata -server @ ws://{self.srv_address}:{self.srv_port}{self.srv_endpoint}"
         )
+        logging.info(f"{self.class_name} - EEICT client(s) can now connect!")
         IOLoop.current().start()
