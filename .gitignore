@@ -71,7 +71,7 @@ __pycache__
 
 # Demodata server specific
 **/demofiles/**/*.dem
-**/demofiles/**/*.json
+**/demofiles/*.json
 
 # Go build specific
 demoparser.h
