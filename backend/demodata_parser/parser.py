@@ -11,16 +11,18 @@ logging.basicConfig(
 class DemodataParser:
     """"""
 
-    def __init__(self, filename):
+    def __init__(self, filename: Path):
         self.class_name = "PARSER"  # Temp before custom logger is implemented
         self.filename = filename
-        self.decoded_filename = self.filename.decode("utf-8")
+        self.decoded_filename = self.filename
         self.json_filename = self.parse_filename()
 
     def parse_filename(self):
         """Changes .dem to .json and creates a Path object"""
         json_filepath = (
-            self.filename.decode("utf-8")
+            str(self.filename)
+            .encode("utf-8")
+            .decode("utf-8")
             .replace(".dem", ".json")
             .encode("utf-8")
         )
@@ -58,6 +60,6 @@ class DemodataParser:
 
 if __name__ == "__main__":
     # Only for quick testing, to be deprecated
-    filename = "mirage.dem".encode("utf-8")
+    filename = Path("mirage.dem")
     parser = DemodataParser(filename)
     parser.parse_demo()

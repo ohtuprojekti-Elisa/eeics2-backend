@@ -31,10 +31,17 @@ class DemodataWebSocketHandler(WebSocketHandler):
 
 
 class DemodataServer:
-    """Handles WebSocket connections to the EEICT server."""
+    """Handles WebSocket connections to EEICT client(s)."""
 
-    def __init__(self, srv_address: str, srv_port: int, srv_endpoint: str):
+    def __init__(
+        self,
+        srv_address: str,
+        srv_port: int,
+        srv_endpoint: str,
+        developer_mode: bool = False,
+    ):
         self.class_name = "SERVER"  # Temp before custom logger is implemented
+        self.developer_mode = developer_mode
         self.srv_address = srv_address
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
@@ -42,19 +49,12 @@ class DemodataServer:
         self.connected_clients: set[WebSocketHandler] = set()
         self.tick_fetch_interval: PeriodicCallback
         self.ticks = None
-        # Timeout
-        self.stream_timeout_s = 15
-        self.stop_stream_timeout = None
 
     def open(self, handler: WebSocketHandler):
         """Handles new connections."""
         self.connected_clients.add(handler)
         logging.info(f"New client connection: {handler.request.remote_ip}")
         logging.info(f"{self.total_clients()}")
-        # Cancel the stop stream timeout if a new client connects
-        if self.stop_stream_timeout:
-            IOLoop.current().remove_timeout(self.stop_stream_timeout)
-            self.stop_stream_timeout = None
         # Send messages to client and start server
         handler.write_message("Welcome to EEICT Demodata -server!")
         handler.write_message("Starting stream ...")
@@ -70,13 +70,6 @@ class DemodataServer:
         # Check if server has no clients
         if len(self.connected_clients) == 0:
             logging.info(f"{self.class_name} - Streaming paused ...")
-            # Reset tick stream after n seconds
-            logging.info(
-                f"{self.class_name} - Setting stop stream timeout for {self.stream_timeout_s} seconds"
-            )
-            logging.info(
-                f"{self.class_name} - Stop stream timeout set: {self.stop_stream_timeout}"
-            )
 
     def total_clients(self):
         return f"Total clients: {len(self.connected_clients)}"
@@ -98,16 +91,6 @@ class DemodataServer:
             if self.tick_fetch_interval.is_running():
                 self.tick_fetch_interval.stop()
                 logging.info(f"{self.class_name} - Streaming paused ...")
-
-    def stream_timeout(self):
-        """
-        After the last client has disconnected from EEICT server,
-        this will unload the previously loaded demodata.
-        """
-        self.ticks = None
-        logging.info(
-            f"{self.class_name} - No clients connected for {self.stream_timeout_s} seconds. Resetting JSON stream."
-        )
 
     def fetch_tick(self):
         """Fetches the next tick from the "tick_data" and sends it for streaming."""
