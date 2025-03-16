@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 
-class DemodataWebSocketHandler(WebSocketHandler):
+class DemoDataWSH(WebSocketHandler):
     def initialize(self, server):
         self.server = server
 
@@ -46,11 +46,11 @@ class DemodataServer:
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
         self.filename = ""
-        self.connected_clients: set[WebSocketHandler] = set()
+        self.connected_clients: set[DemoDataWSH] = set()
+        self.ticks = self.ticks_chopper()
         self.tick_fetch_interval: PeriodicCallback
-        self.ticks = None
 
-    def open(self, handler: WebSocketHandler):
+    def open(self, handler: DemoDataWSH):
         """Handles new connections."""
         self.connected_clients.add(handler)
         logging.info(f"New client connection: {handler.request.remote_ip}")
@@ -58,35 +58,34 @@ class DemodataServer:
         # Send messages to client and start server
         handler.write_message("Welcome to EEICT Demodata -server!")
         handler.write_message("Starting stream ...")
+        # Start stream
         self.stream_start()
 
-    def on_close(self, handler: WebSocketHandler):
+    def on_close(self, handler: DemoDataWSH):
         """Handles closed connections."""
         self.connected_clients.discard(handler)
         logging.info(
             f"{self.class_name} - Client connection closed: {handler.request.remote_ip}"
         )
         logging.info(f"{self.class_name} - {self.total_clients()}")
-        # Check if server has no clients
-        if len(self.connected_clients) == 0:
-            logging.info(f"{self.class_name} - Streaming paused ...")
+        self.stream_pause()
 
     def total_clients(self):
         return f"Total clients: {len(self.connected_clients)}"
 
     def stream_start(self, interval_ms: float = 15.625):
+        """Streams demodata to EEICT clients using the given interval.
+
+        Default: 64 ticks/second = 15.625 ms.
         """
-        Streams demodata to EEICT clients using the given interval,
-        in example: 64 ticks/second = 15.625 ms.
-        """
-        self.ticks = self.ticks_chopper()
-        self.tick_fetch_interval = PeriodicCallback(
-            self.fetch_tick, interval_ms
-        )
-        self.tick_fetch_interval.start()
+        if len(self.connected_clients) > 0:
+            self.tick_fetch_interval = PeriodicCallback(
+                self.fetch_tick, interval_ms
+            )
+            self.tick_fetch_interval.start()
 
     def stream_pause(self):
-        """When client disconnects,  stream gets paused."""
+        """Pause stream if no connected clients."""
         if len(self.connected_clients) == 0:
             if self.tick_fetch_interval.is_running():
                 self.tick_fetch_interval.stop()
@@ -105,9 +104,15 @@ class DemodataServer:
                 return
             IOLoop.current().add_callback(self.stream_tick, next_tick)
         except StopIteration:
-            IOLoop.current().add_callback(self.stream_tick, "EOF")
-            self.tick_fetch_interval.stop()
-            logging.warning(f"{self.class_name} - Stream ended!")
+            if self.developer_mode:
+                self.ticks = self.ticks_chopper()
+                logging.info(
+                    f"{self.class_name} - Stream restarting (developer loop)."
+                )
+            else:
+                IOLoop.current().add_callback(self.stream_tick, "EOF")
+                self.tick_fetch_interval.stop()
+                logging.warning(f"{self.class_name} - Stream ended!")
 
     async def stream_tick(self, tick: str):
         """Stream a single tick to all connected clients."""
@@ -151,17 +156,12 @@ class DemodataServer:
     def start_server(self):
         """Starts the demodata server."""
         app = Application(
-            [
-                (
-                    self.srv_endpoint,
-                    DemodataWebSocketHandler,
-                    dict(server=self),
-                )
-            ]
+            [(self.srv_endpoint, DemoDataWSH, dict(server=self))]
         )
         app.listen(self.srv_port, self.srv_address)
         logging.info(
             f"{self.class_name} - EEICT Demodata -server @ ws://{self.srv_address}:{self.srv_port}{self.srv_endpoint}"
         )
-        logging.info(f"{self.class_name} - EEICT client(s) can now connect!")
+        # Start main loop
         IOLoop.current().start()
+        logging.info(f"{self.class_name} - EEICT client(s) can now connect!")
