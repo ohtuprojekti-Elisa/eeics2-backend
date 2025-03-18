@@ -49,8 +49,9 @@ if __name__ == "__main__":
 
     # Parser
     if not developer_mode and filename is not None:
-        demodata_parser = DemodataParser(filename)
-        parser_status = demodata_parser.parse_demo()
+        demodata_parser = DemodataParser()
+        demodata_parser.demofile(filename)
+        parser_status = demodata_parser.parse()
         filename = demodata_parser.parse_filename()
 
     # Server
