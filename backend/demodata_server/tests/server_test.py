@@ -16,25 +16,37 @@ class TestDemodataServer(unittest.TestCase):
             self.srv_endpoint,
             self.developer_mode,
         )
+        self.filename = Path("test.json")
 
-    def test_parse_filename(self):
+    def test_demodata_input(self):
         # Arrange
-        test_input = Path("test.json")
-        test_output = test_input
-
+        expected_output = self.filename
         # Act
-        output = self.demodata_server.demodata_input(test_input)
-
+        output = self.demodata_server.demodata_input(self.filename)
         # Assert
-        assert output == test_output
+        assert output == expected_output
+
+    def test_stream_start(self):
+        # Arrange
+        expected_output = False
+        # Act
+        output = self.demodata_server.stream_start()
+        # Assert
+        assert output == expected_output
 
     def test_stream_pause(self):
         # Arrange
         self.demodata_server.stream_start()
-        test_output = False
-
+        expected_output = False
         # Act
         output = self.demodata_server.stream_pause()
-
         # Assert
-        assert output == test_output
+        assert output == expected_output
+
+    def test_total_clients(self):
+        # Arrange
+        expected_output = 0
+        # Act
+        output = self.demodata_server.total_clients()
+        # Assert
+        assert output == expected_output
