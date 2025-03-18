@@ -41,16 +41,18 @@ class DemodataServer:
         developer_mode: bool = False,
     ):
         self.class_name = "SERVER"  # Temp before custom logger is implemented
-        self.developer_mode = developer_mode
         self.srv_address = srv_address
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
+        self.developer_mode = developer_mode
         self.filename = ""
         self.connected_clients: set[DemoDataWSH] = set()
         self.ticks = self.ticks_chopper()
-        self.tick_fetch_interval: PeriodicCallback
+        self.tick_fetch_interval: PeriodicCallback = PeriodicCallback(
+            lambda: None, 1000
+        )
 
-    def open(self, handler: DemoDataWSH):
+    def open(self, handler: DemoDataWSH) -> int:
         """Handles new connections."""
         self.connected_clients.add(handler)
         logging.info(f"New client connection: {handler.request.remote_ip}")
@@ -60,8 +62,9 @@ class DemodataServer:
         handler.write_message("Starting stream ...")
         # Start stream
         self.stream_start()
+        return len(self.connected_clients)
 
-    def on_close(self, handler: DemoDataWSH):
+    def on_close(self, handler: DemoDataWSH) -> int:
         """Handles closed connections."""
         self.connected_clients.discard(handler)
         logging.info(
@@ -69,11 +72,13 @@ class DemodataServer:
         )
         logging.info(f"{self.class_name} - {self.total_clients()}")
         self.stream_pause()
+        return len(self.connected_clients)
 
-    def total_clients(self):
-        return f"Total clients: {len(self.connected_clients)}"
+    def total_clients(self) -> int:
+        logging.info(f"Total clients: {len(self.connected_clients)}")
+        return len(self.connected_clients)
 
-    def stream_start(self, interval_ms: float = 15.625):
+    def stream_start(self, interval_ms: float = 15.625) -> bool:
         """Streams demodata to EEICT clients using the given interval.
 
         Default: 64 ticks/second = 15.625 ms.
@@ -83,15 +88,17 @@ class DemodataServer:
                 self.fetch_tick, interval_ms
             )
             self.tick_fetch_interval.start()
+        return self.tick_fetch_interval.is_running()
 
-    def stream_pause(self):
+    def stream_pause(self) -> bool:
         """Pause stream if no connected clients."""
         if len(self.connected_clients) == 0:
             if self.tick_fetch_interval.is_running():
                 self.tick_fetch_interval.stop()
                 logging.info(f"{self.class_name} - Streaming paused ...")
+        return self.tick_fetch_interval.is_running()
 
-    def fetch_tick(self):
+    def fetch_tick(self) -> None:
         """Fetches the next tick from the "tick_data" and sends it for streaming."""
         try:
             if self.ticks:
@@ -114,7 +121,7 @@ class DemodataServer:
                 self.tick_fetch_interval.stop()
                 logging.warning(f"{self.class_name} - Stream ended!")
 
-    async def stream_tick(self, tick: str):
+    async def stream_tick(self, tick: str) -> None:
         """Stream a single tick to all connected clients."""
         if self.connected_clients:
             for client in list(self.connected_clients):
@@ -123,7 +130,7 @@ class DemodataServer:
                 except Exception:
                     self.connected_clients.discard(client)
 
-    def convert_values(self, obj):
+    def convert_values(self, obj: ijson.items) -> ijson.items:
         """Convert ijson's mangled data back to normal (quickfix)."""
         if isinstance(obj, Decimal):
             return float(obj)
@@ -135,25 +142,25 @@ class DemodataServer:
             return [self.convert_values(v) for v in obj]
         return obj
 
-    def ticks_chopper(self):
+    def ticks_chopper(self) -> ijson.items:
         """Chops ticks from JSON data.
 
         This function uses Ijson (Iterative JSON parse) library for reading
         a large JSON files directly from hard-drive, without first loading it
         to main memory.
         """
-        filename = self.filename
-        with open(filename, "r") as file:
+        with open(self.filename, "r") as file:
             for tick in ijson.items(file, "ticks.item"):
                 cleaned_tick = self.convert_values(tick)
                 yield json.dumps(cleaned_tick)
 
-    def demodata_input(self, filename: Path):
+    def demodata_input(self, filename: Path) -> Path:
         """Handles the input file for demodata."""
         self.filename = filename
         logging.info(f"{self.class_name} - Received a file '{filename}'")
+        return filename
 
-    def start_server(self):
+    def start_server(self) -> bool:
         """Starts the demodata server."""
         app = Application(
             [(self.srv_endpoint, DemoDataWSH, dict(server=self))]
@@ -165,3 +172,4 @@ class DemodataServer:
         # Start main loop
         IOLoop.current().start()
         logging.info(f"{self.class_name} - EEICT client(s) can now connect!")
+        return True
