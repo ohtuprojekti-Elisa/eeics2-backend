@@ -17,7 +17,7 @@ with open(Path(__file__).parent / "settings.json") as f:
 
 
 def get_relative_path(filename: str) -> Path:
-    """"""
+    """Get the relative path of the demodata file."""
     demofile_folder = "demofiles"
     full_path = Path(__file__).parent / demofile_folder / filename
     if not full_path.exists():
@@ -28,7 +28,7 @@ def get_relative_path(filename: str) -> Path:
 
 
 def parser_process(filename: Path, queue: Queue) -> None:
-    """"""
+    """Run the parser process on the demodata file."""
     demodata_parser = DemodataParser()
     demodata_parser.demofile(filename)
     parser_status = demodata_parser.parse()
@@ -37,7 +37,7 @@ def parser_process(filename: Path, queue: Queue) -> None:
 
 
 def server_process(filename: Path, developer_mode: bool) -> None:
-    """"""
+    """Run the server process to stream the demodata."""
     demodata_server = DemodataServer(
         settings["srv_address"],
         settings["srv_port"],
@@ -48,8 +48,8 @@ def server_process(filename: Path, developer_mode: bool) -> None:
     demodata_server.start_server()
 
 
-def get_arguments():
-    """"""
+def get_arguments() -> argparse.Namespace:
+    """Parse and return command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Process and stream CS2 demodata file."
     )
@@ -69,13 +69,8 @@ def get_arguments():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    # Set arguments
-    args = get_arguments()
-    filename = get_relative_path(args.file)
-    developer_mode = args.developer
-
-    # Start processes
+def start_processes(filename: Path, developer_mode: bool) -> None:
+    """Start the parser and server processes."""
     process_queue = Queue()
     if not developer_mode and filename is not None:
         parser_proc = Process(
@@ -96,3 +91,13 @@ if __name__ == "__main__":
         server_proc.join()
     else:
         logging.error(f"ORCHESTRATOR - Something went wrong!")
+
+
+if __name__ == "__main__":
+    # Set arguments
+    args = get_arguments()
+    filename = get_relative_path(args.file)
+    developer_mode = args.developer
+
+    # Start processes
+    start_processes(filename, developer_mode)
