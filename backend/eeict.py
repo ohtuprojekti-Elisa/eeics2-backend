@@ -43,8 +43,8 @@ def server_process(filename: Path, developer_mode: bool) -> None:
     demodata_server.start_server()
 
 
-if __name__ == "__main__":
-    # Exectute arguments
+def get_arguments():
+    # Execute arguments
     parser = argparse.ArgumentParser(
         description="Process and stream CS2 demodata file."
     )
@@ -61,8 +61,11 @@ if __name__ == "__main__":
         action="store_true",
         help="enter developer mode (bool), skips parser, use custom JSON: -d -f dev.json",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+if __name__ == "__main__":
+    args = get_arguments()
     # Set variables
     filename = get_relative_path(args.file)
     developer_mode = args.developer
