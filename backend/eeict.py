@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 from demodata_parser import DemodataParser
 from demodata_server import DemodataServer
-
+from multiprocessing import Process, Queue
 
 # Configure logging
 logging.basicConfig(
@@ -11,19 +11,40 @@ logging.basicConfig(
 )
 
 
-def get_relative_path(filename):
+def get_relative_path(filename: str) -> Path:
     """"""
     demofile_folder = "demofiles"
     full_path = Path(__file__).parent / demofile_folder / filename
     if not full_path.exists():
         logging.error(f"File {filename} does not exist.")
-        return None
+        return Path()
     relative_path = full_path.relative_to(Path(__file__).parent)
     return relative_path
 
 
+def parser_process(filename: Path, queue: Queue) -> None:
+    """"""
+    demodata_parser = DemodataParser()
+    demodata_parser.demofile(filename)
+    parser_status = demodata_parser.parse()
+    parsed_filename = demodata_parser.parse_filename()
+    queue.put((parser_status, parsed_filename))
+
+
+def server_process(filename: Path, developer_mode: bool) -> None:
+    """"""
+    demodata_server = DemodataServer(
+        "0.0.0.0",
+        8080,
+        "/demodata",
+        developer_mode,
+    )
+    demodata_server.demodata_input(filename)
+    demodata_server.start_server()
+
+
 if __name__ == "__main__":
-    # Arguments
+    # Exectute arguments
     parser = argparse.ArgumentParser(
         description="Process and stream CS2 demodata file."
     )
@@ -45,24 +66,25 @@ if __name__ == "__main__":
     # Set variables
     filename = get_relative_path(args.file)
     developer_mode = args.developer
-    parser_status = False
 
-    # Parser
+    # Start processes
+    process_queue = Queue()
     if not developer_mode and filename is not None:
-        demodata_parser = DemodataParser()
-        demodata_parser.demofile(filename)
-        parser_status = demodata_parser.parse()
-        filename = demodata_parser.parse_filename()
-
-    # Server
-    if (parser_status or developer_mode) and filename is not None:
-        demodata_server = DemodataServer(
-            "0.0.0.0",
-            8080,
-            "/demodata",
-            developer_mode,
+        parser_proc = Process(
+            target=parser_process, args=(filename, process_queue)
         )
-        demodata_server.demodata_input(filename)
-        demodata_server.start_server()
+        parser_proc.start()
+        parser_proc.join()
+        parser_status, parsed_filename = process_queue.get()
+        filename = parsed_filename
+    else:
+        parser_status = True
+
+    if (parser_status or developer_mode) and filename is not None:
+        server_proc = Process(
+            target=server_process, args=(filename, developer_mode)
+        )
+        server_proc.start()
+        server_proc.join()
     else:
         logging.error(f"ORCHESTRATOR - Something went wrong!")

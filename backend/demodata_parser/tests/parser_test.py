@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-from demodata_parser import DemodataParser
+from demodata_parser import DemodataParser, messages
 
 
 class TestDemodataParser(unittest.TestCase):
@@ -20,8 +20,8 @@ class TestDemodataParser(unittest.TestCase):
 
     def test_demofile_false(self):
         # Arrange
+        expected_output = messages.INVALID_DEMOFILE
         error_input = Path("testfile.xyz")
-        expected_output = self.parser.msg_demofile_error
         # Act & Assert
         with self.assertRaises(ValueError) as context:
             self.parser.demofile(error_input)

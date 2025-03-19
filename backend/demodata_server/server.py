@@ -6,7 +6,7 @@ from decimal import Decimal
 from tornado.web import Application
 from tornado.ioloop import PeriodicCallback, IOLoop
 from tornado.websocket import WebSocketHandler
-
+from . import messages as msg
 
 # Configure logging
 logging.basicConfig(
@@ -47,81 +47,82 @@ class DemodataServer:
         self.developer_mode = developer_mode
         self.filename = ""
         self.connected_clients: set[DemoDataWSH] = set()
-        self.ticks = self.ticks_chopper()
+        self.ticks = self._ticks_chopper()
         self.tick_fetch_interval: PeriodicCallback = PeriodicCallback(
             lambda: None, 1000
         )
 
     def open(self, handler: DemoDataWSH) -> int:
-        """Handles new connections."""
+        """Handles new connections, sends messages to client and starts streaming."""
         self.connected_clients.add(handler)
-        logging.info(f"New client connection: {handler.request.remote_ip}")
-        logging.info(f"{self.total_clients()}")
-        # Send messages to client and start server
-        handler.write_message("Welcome to EEICT Demodata -server!")
-        handler.write_message("Starting stream ...")
-        # Start stream
-        self.stream_start()
+        logging.info(
+            f"{self.class_name} - {msg.CLIENT_NEW_CONNECTION}: {handler.request.remote_ip}"
+        )
+        logging.info(f"{self.class_name} - {self.total_clients()}")
+        handler.write_message(f"{self.class_name} - {msg.CLIENT_WELCOME}")
+        handler.write_message(f"{self.class_name} - {msg.CLIENT_START_STREAM}")
+        self._stream_start()
         return len(self.connected_clients)
 
     def on_close(self, handler: DemoDataWSH) -> int:
         """Handles closed connections."""
         self.connected_clients.discard(handler)
         logging.info(
-            f"{self.class_name} - Client connection closed: {handler.request.remote_ip}"
+            f"{self.class_name} - {msg.CLIENT_CLOSED_CONNECTION}: {handler.request.remote_ip}"
         )
         logging.info(f"{self.class_name} - {self.total_clients()}")
-        self.stream_pause()
+        self._stream_pause()
         return len(self.connected_clients)
 
-    def total_clients(self) -> int:
-        logging.info(f"Total clients: {len(self.connected_clients)}")
-        return len(self.connected_clients)
+    def total_clients(self) -> str:
+        """Formats info on clients to a single string."""
+        connected_clients = len(self.connected_clients)
+        return (
+            f"{self.class_name} - {msg.CLIENT_TOTAL_NUM}: {connected_clients}"
+        )
 
-    def stream_start(self, interval_ms: float = 15.625) -> bool:
+    def _stream_start(self, interval_ms: float = 15.625) -> bool:
         """Streams demodata to EEICT clients using the given interval.
 
         Default: 64 ticks/second = 15.625 ms.
         """
         if len(self.connected_clients) > 0:
             self.tick_fetch_interval = PeriodicCallback(
-                self.fetch_tick, interval_ms
+                self._fetch_tick, interval_ms
             )
             self.tick_fetch_interval.start()
         return self.tick_fetch_interval.is_running()
 
-    def stream_pause(self) -> bool:
+    def _stream_pause(self) -> bool:
         """Pause stream if no connected clients."""
         if len(self.connected_clients) == 0:
             if self.tick_fetch_interval.is_running():
                 self.tick_fetch_interval.stop()
-                logging.info(f"{self.class_name} - Streaming paused ...")
+                logging.info(f"{self.class_name} - {msg.STREAM_PAUSED}")
         return self.tick_fetch_interval.is_running()
 
-    def fetch_tick(self) -> None:
+    def _fetch_tick(self) -> None:
         """Fetches the next tick from the "tick_data" and sends it for streaming."""
         try:
             if self.ticks:
                 next_tick = next(self.ticks)
             else:
                 logging.warning(
-                    f"{self.class_name} - Tick stream is not initialized."
+                    f"{self.class_name} - {msg.STREAM_TICK_NOT_INIT}"
                 )
                 self.tick_fetch_interval.stop()
                 return
-            IOLoop.current().add_callback(self.stream_tick, next_tick)
+            IOLoop.current().add_callback(self._stream_tick, next_tick)
         except StopIteration:
             if self.developer_mode:
-                self.ticks = self.ticks_chopper()
-                logging.info(
-                    f"{self.class_name} - Stream restarting (developer loop)."
-                )
+                self.ticks = self._ticks_chopper()
+                logging.info(f"{self.class_name} - {msg.STREAM_DEV_MODE}")
             else:
-                IOLoop.current().add_callback(self.stream_tick, "EOF")
+                IOLoop.current().add_callback(self._stream_tick, "EOF")
                 self.tick_fetch_interval.stop()
-                logging.warning(f"{self.class_name} - Stream ended!")
+                logging.warning(f"{self.class_name} - {msg.STREAM_ENDED}")
 
-    async def stream_tick(self, tick: str) -> None:
+    async def _stream_tick(self, tick: str) -> None:
         """Stream a single tick to all connected clients."""
         if self.connected_clients:
             for client in list(self.connected_clients):
@@ -130,19 +131,19 @@ class DemodataServer:
                 except Exception:
                     self.connected_clients.discard(client)
 
-    def convert_values(self, obj: ijson.items) -> ijson.items:
+    def _convert_values(self, obj: ijson.items) -> ijson.items:
         """Convert ijson's mangled data back to normal (quickfix)."""
         if isinstance(obj, Decimal):
             return float(obj)
         elif isinstance(obj, bool):
             return obj
         elif isinstance(obj, dict):
-            return {k: self.convert_values(v) for k, v in obj.items()}
+            return {k: self._convert_values(v) for k, v in obj.items()}
         elif isinstance(obj, list):
-            return [self.convert_values(v) for v in obj]
+            return [self._convert_values(v) for v in obj]
         return obj
 
-    def ticks_chopper(self) -> ijson.items:
+    def _ticks_chopper(self) -> ijson.items:
         """Chops ticks from JSON data.
 
         This function uses Ijson (Iterative JSON parse) library for reading
@@ -151,25 +152,30 @@ class DemodataServer:
         """
         with open(self.filename, "r") as file:
             for tick in ijson.items(file, "ticks.item"):
-                cleaned_tick = self.convert_values(tick)
+                cleaned_tick = self._convert_values(tick)
                 yield json.dumps(cleaned_tick)
 
     def demodata_input(self, filename: Path) -> Path:
         """Handles the input file for demodata."""
         self.filename = filename
-        logging.info(f"{self.class_name} - Received a file '{filename}'")
+        logging.info(
+            f"{self.class_name} - {msg.STREAM_INPUT_FILE}: {self.filename}"
+        )
         return filename
 
-    def start_server(self) -> bool:
+    def _server_info(self) -> str:
+        """Formats server info to a single string."""
+        return f"{self.class_name} - {self.srv_address}:{self.srv_port}/{self.srv_endpoint}"
+
+    def start_server(self) -> None:
         """Starts the demodata server."""
         app = Application(
             [(self.srv_endpoint, DemoDataWSH, dict(server=self))]
         )
         app.listen(self.srv_port, self.srv_address)
         logging.info(
-            f"{self.class_name} - EEICT Demodata -server @ ws://{self.srv_address}:{self.srv_port}{self.srv_endpoint}"
+            f"{self.class_name} - {msg.SERVER_START} @ {self._server_info()}"
         )
+        logging.info(f"{self.class_name} - {msg.CLIENT_CAN_CONNECT}")
         # Start main loop
         IOLoop.current().start()
-        logging.info(f"{self.class_name} - EEICT client(s) can now connect!")
-        return True

@@ -1,6 +1,8 @@
 import ctypes
 import logging
 from pathlib import Path
+from . import messages as msg
+
 
 # Configure logging
 logging.basicConfig(
@@ -15,17 +17,27 @@ class DemodataParser:
         self.class_name = "PARSER"  # Temp before custom logger is implemented
         self.demo_filename: Path = Path()
         self.json_filename: Path = Path()
-        self.msg_demofile_error = "Please input CS2 demofile (.dem)"
+        self.parsing_result = False
+
+    def _ext_parser(self) -> None:
+        """Uses an external Go based library to parse the demo file."""
+        library_path = str(Path(__file__).parent / "demoparser.so")
+        demoparser = ctypes.CDLL(library_path)
+        demoparser.ParseDemo.argtypes = [ctypes.c_char_p]
+        demoparser.ParseDemo.restype = ctypes.c_bool
+        self.parsing_result = demoparser.ParseDemo(
+            ctypes.c_char_p(str(self.demo_filename).encode("utf-8"))
+        )
 
     def demofile(self, filename: Path) -> Path:
-        """Checks that the file extension is .dem"""
+        """Checks that the file extension is .dem."""
         if filename.suffix != ".dem":
-            raise ValueError(self.msg_demofile_error)
+            raise ValueError(msg.INVALID_DEMOFILE)
         self.demo_filename = filename
         return self.demo_filename
 
     def parse_filename(self) -> Path:
-        """Replaces .dem with .json"""
+        """Replaces .dem with .json in filename."""
         json_filepath = (
             str(self.demo_filename)
             .encode("utf-8")
@@ -33,34 +45,30 @@ class DemodataParser:
             .replace(".dem", ".json")
             .encode("utf-8")
         )
-        self.json_filepath = Path(json_filepath.decode("utf-8"))
-        return self.json_filepath
+        self.json_filename = Path(json_filepath.decode("utf-8"))
+        return self.json_filename
 
     def parse(self) -> bool:
-        """"""
+        """Initiates the parsing process and handles the result."""
         self.parse_filename()
         if self.json_filename.exists():
             logging.info(
-                f"{self.class_name} - JSON file '{self.json_filename}' already exists, skipping!"
+                f"{self.class_name} - {self.json_filename} {msg.PARSE_SKIP}"
             )
             return True
         else:
             logging.info(
-                f"{self.class_name} - Starting new demofile parse for: '{self.demo_filename}'"
+                f"{self.class_name} - {self.demo_filename} {msg.PARSE_STARTING}"
             )
-
-        # Demoparser Go-library related
-        library_path = str(Path(__file__).parent / "demoparser.so")
-        demoparser = ctypes.CDLL(library_path)
-        demoparser.ParseDemo.argtypes = [ctypes.c_char_p]
-        demoparser.ParseDemo.restype = ctypes.c_bool
-        parsing_result = demoparser.ParseDemo(self.demo_filename)
-
-        if parsing_result:
+        # Initiate external parser
+        self._ext_parser()
+        if self.parsing_result:
             logging.info(
-                f"{self.class_name} - Demofile '{self.demo_filename}' parsed successfully!"
+                f"{self.class_name} - {msg.PARSE_COMPLETED}: {self.demo_filename}"
             )
             return True
         else:
-            logging.warning(f"{self.class_name} - Demofile parsing failed!")
+            logging.warning(
+                f"{self.class_name} - {msg.PARSE_FAILED}: {self.demo_filename}"
+            )
             return False

@@ -30,16 +30,16 @@ class TestDemodataServer(unittest.TestCase):
         # Arrange
         expected_output = False
         # Act
-        output = self.demodata_server.stream_start()
+        output = self.demodata_server._stream_start()
         # Assert
         assert output == expected_output
 
     def test_stream_pause(self):
         # Arrange
-        self.demodata_server.stream_start()
+        self.demodata_server._stream_start()
         expected_output = False
         # Act
-        output = self.demodata_server.stream_pause()
+        output = self.demodata_server._stream_pause()
         # Assert
         assert output == expected_output
 
@@ -47,6 +47,6 @@ class TestDemodataServer(unittest.TestCase):
         # Arrange
         expected_output = 0
         # Act
-        output = self.demodata_server.total_clients()
+        output = len(self.demodata_server.connected_clients)
         # Assert
         assert output == expected_output
