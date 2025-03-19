@@ -11,7 +11,7 @@ logging.basicConfig(
 
 
 class DemodataParser:
-    """"""
+    """A parser for demo data files that uses an external Go-based library."""
 
     def __init__(self):
         self.class_name = "PARSER"  # Temp before custom logger is implemented
