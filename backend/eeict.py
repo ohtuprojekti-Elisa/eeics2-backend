@@ -1,3 +1,4 @@
+import json
 import logging
 import argparse
 from pathlib import Path
@@ -9,6 +10,10 @@ from multiprocessing import Process, Queue
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+# Load settings file
+with open(Path(__file__).parent / "settings.json") as f:
+    settings = json.load(f)
 
 
 def get_relative_path(filename: str) -> Path:
@@ -34,9 +39,9 @@ def parser_process(filename: Path, queue: Queue) -> None:
 def server_process(filename: Path, developer_mode: bool) -> None:
     """"""
     demodata_server = DemodataServer(
-        "0.0.0.0",
-        8080,
-        "/demodata",
+        settings["srv_address"],
+        settings["srv_port"],
+        settings["srv_endpoint"],
         developer_mode,
     )
     demodata_server.demodata_input(filename)
@@ -44,7 +49,7 @@ def server_process(filename: Path, developer_mode: bool) -> None:
 
 
 def get_arguments():
-    # Execute arguments
+    """"""
     parser = argparse.ArgumentParser(
         description="Process and stream CS2 demodata file."
     )
@@ -65,8 +70,8 @@ def get_arguments():
 
 
 if __name__ == "__main__":
+    # Set arguments
     args = get_arguments()
-    # Set variables
     filename = get_relative_path(args.file)
     developer_mode = args.developer
 
