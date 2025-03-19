@@ -131,18 +131,6 @@ class DemodataServer:
                 except Exception:
                     self.connected_clients.discard(client)
 
-    def _convert_values(self, obj: ijson.items) -> ijson.items:
-        """Convert ijson's mangled data back to normal (quickfix)."""
-        if isinstance(obj, Decimal):
-            return float(obj)
-        elif isinstance(obj, bool):
-            return obj
-        elif isinstance(obj, dict):
-            return {k: self._convert_values(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [self._convert_values(v) for v in obj]
-        return obj
-
     def _ticks_chopper(self) -> ijson.items:
         """Chops ticks from JSON data.
 
@@ -151,9 +139,12 @@ class DemodataServer:
         to main memory.
         """
         with open(self.filename, "r") as file:
-            for tick in ijson.items(file, "ticks.item"):
-                cleaned_tick = self._convert_values(tick)
-                yield json.dumps(cleaned_tick)
+            for tick in ijson.items(
+                file,
+                "ticks.item",
+                use_float=True,
+            ):
+                yield json.dumps(tick)
 
     def demodata_input(self, filename: Path) -> Path:
         """Handles the input file for demodata."""
