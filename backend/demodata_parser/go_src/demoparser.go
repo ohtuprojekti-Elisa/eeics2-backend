@@ -8,7 +8,6 @@ import "C"
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
@@ -365,18 +364,23 @@ func ParseDemo(filename *C.char) C.bool {
 	demodata.MapName = p.Header().MapName
 	demodata.Ticks = ticks
 
-	// Write to JSON file
-	jsonData, err := json.MarshalIndent(demodata, "", "")
-	if err != nil {
-		fmt.Println("Error encoding JSON:", err)
-		return C.bool(false)
-	}
+	file, _ := os.OpenFile(jsonFileName, os.O_CREATE, os.ModePerm)
+	defer file.Close()
 
-	err = os.WriteFile(jsonFileName, jsonData, 0644)
-	if err != nil {
-		fmt.Println("Error writing JSON file:", err)
-		return C.bool(false)
-	}
+	// Write to JSON file
+	encoder := json.NewEncoder(file)
+	encoder.Encode(demodata)
+
+	// if err != nil {
+	// 	fmt.Println("Error encoding JSON:", err)
+	// 	return C.bool(false)
+	// }
+
+	// err = os.WriteFile(jsonFileName, jsonData, 0644)
+	// if err != nil {
+	// 	fmt.Println("Error writing JSON file:", err)
+	// 	return C.bool(false)
+	// }
 
 	return C.bool(true)
 }
