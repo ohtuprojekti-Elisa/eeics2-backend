@@ -133,15 +133,15 @@ func ParseDemo(filename *C.char) C.bool {
 	demodataFileName := C.GoString(filename)
 	jsonFileName := demodataFileName[:len(demodataFileName)-len(".dem")] + ".json"
 
-	f, err := os.Open(demodataFileName)
+	demodataFile, err := os.Open(demodataFileName)
 	if err != nil {
 		log.Panic("failed to open demo file: ", err)
 		return C.bool(false)
 	}
-	defer f.Close()
+	defer demodataFile.Close()
 
-	p := demoinfocs.NewParser(f)
-	defer p.Close()
+	parser := demoinfocs.NewParser(demodataFile)
+	defer parser.Close()
 
 	var demodata DemoData
 	var ticks []Tick
@@ -156,14 +156,14 @@ func ParseDemo(filename *C.char) C.bool {
 	bombExploded := false
 
 	//Player weapon fire
-	p.RegisterEventHandler(func(e events.WeaponFire) {
+	parser.RegisterEventHandler(func(e events.WeaponFire) {
 		if e.Shooter != nil {
 			fireEvents = append(fireEvents, e.Shooter.SteamID64)
 		}
 	})
 
 	// Smokes
-	p.RegisterEventHandler(func(e events.SmokeStart) {
+	parser.RegisterEventHandler(func(e events.SmokeStart) {
 		smokeEvents = append(smokeEvents, SmokeEvent{
 			X: e.Position.X,
 			Y: e.Position.Y,
@@ -172,7 +172,7 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Infernos
-	p.RegisterEventHandler(func(e events.InfernoStart) {
+	parser.RegisterEventHandler(func(e events.InfernoStart) {
 		for _, inferno := range e.Inferno.Fires().Active().List() {
 			inferEvents = append(inferEvents, InfernoEvent{
 				X: inferno.X,
@@ -183,7 +183,7 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Decoys
-	p.RegisterEventHandler(func(e events.DecoyStart) {
+	parser.RegisterEventHandler(func(e events.DecoyStart) {
 		decoyEvents = append(decoyEvents, DecoyEvent{
 			X: e.Position.X,
 			Y: e.Position.Y,
@@ -192,7 +192,7 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Kill events
-	p.RegisterEventHandler(func(e events.Kill) {
+	parser.RegisterEventHandler(func(e events.Kill) {
 		kills = append(kills, Kill{
 			Killer:            checkPlayerName(e.Killer),
 			Victim:            checkPlayerName(e.Victim),
@@ -203,7 +203,7 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Bomb planted
-	p.RegisterEventHandler(func(e events.BombPlanted) {
+	parser.RegisterEventHandler(func(e events.BombPlanted) {
 		isPlanted := false
 		planterName := ""
 
@@ -219,7 +219,7 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Bomb defused
-	p.RegisterEventHandler(func(e events.BombDefused) {
+	parser.RegisterEventHandler(func(e events.BombDefused) {
 		isDefused := false
 		defuserName := ""
 
@@ -235,14 +235,14 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Bomb explodes
-	p.RegisterEventHandler(func(e events.BombExplode) {
+	parser.RegisterEventHandler(func(e events.BombExplode) {
 		bombExploded = true
 	})
 
 	// Start of a new round
 	// True: indicates which tick is the exact round starting tick
 	// False: otherwise
-	p.RegisterEventHandler(func(e events.RoundStart) {
+	parser.RegisterEventHandler(func(e events.RoundStart) {
 		roundStarted = true
 
 		// Reset bomb status
@@ -259,12 +259,12 @@ func ParseDemo(filename *C.char) C.bool {
 
 	// Tick data
 	// TODO: Needs heavy refactoring
-	p.RegisterEventHandler(func(e events.FrameDone) {
+	parser.RegisterEventHandler(func(e events.FrameDone) {
 		var players []Player
 		var nades []Nade
 
 		// Players
-		for _, player := range p.GameState().Participants().Playing() {
+		for _, player := range parser.GameState().Participants().Playing() {
 			if player.IsAlive() {
 				pos := player.Position()
 
@@ -293,7 +293,7 @@ func ParseDemo(filename *C.char) C.bool {
 					Deaths:      player.Deaths(),
 					Assists:     player.Assists(),
 					DMG:         player.TotalDamage(),
-					ADR:         calculateADR(player.TotalDamage(), p.GameState().TotalRoundsPlayed()), // avg damage / round
+					ADR:         calculateADR(player.TotalDamage(), parser.GameState().TotalRoundsPlayed()), // avg damage / round
 					IsPlanting:  player.IsPlanting,
 					IsDefusing:  player.IsDefusing,
 				})
@@ -301,7 +301,7 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 
 		// Grenades
-		for _, nade := range p.GameState().GrenadeProjectiles() {
+		for _, nade := range parser.GameState().GrenadeProjectiles() {
 			nades = append(nades, Nade{
 				Type: nade.WeaponInstance.Type.String(),
 				X:    nade.Position().X,
@@ -312,7 +312,7 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 
 		// Bomb
-		bomb := p.GameState().Bomb()
+		bomb := parser.GameState().Bomb()
 
 		bombStruct := Bomb{
 			Carrier:     checkPlayerName(bomb.Carrier),
@@ -326,12 +326,12 @@ func ParseDemo(filename *C.char) C.bool {
 
 		// Tick
 		ticks = append(ticks, Tick{
-			Tick:          p.CurrentFrame(),
+			Tick:          parser.CurrentFrame(),
 			RoundStarted:  roundStarted,
-			TeamT:         p.GameState().TeamTerrorists().ClanName(),
-			TeamCT:        p.GameState().TeamCounterTerrorists().ClanName(),
-			TWins:         p.GameState().TeamTerrorists().Score(),
-			CTWins:        p.GameState().TeamCounterTerrorists().Score(),
+			TeamT:         parser.GameState().TeamTerrorists().ClanName(),
+			TeamCT:        parser.GameState().TeamCounterTerrorists().ClanName(),
+			TWins:         parser.GameState().TeamTerrorists().Score(),
+			CTWins:        parser.GameState().TeamCounterTerrorists().Score(),
 			Players:       players,
 			Bomb:          bombStruct,
 			FireEvents:    fireEvents,
@@ -353,34 +353,23 @@ func ParseDemo(filename *C.char) C.bool {
 	})
 
 	// Parse demo to end
-	err = p.ParseToEnd()
+	err = parser.ParseToEnd()
 	if err != nil {
 		log.Panic("Error parsing demo: ", err)
 		return C.bool(false)
 	}
 
-	demodata.TickRate = p.TickRate()
-	demodata.TotalTicks = p.Header().PlaybackFrames
-	demodata.MapName = p.Header().MapName
+	// Build demodata
+	demodata.TickRate = parser.TickRate()
+	demodata.TotalTicks = parser.Header().PlaybackFrames
+	demodata.MapName = parser.Header().MapName
 	demodata.Ticks = ticks
 
-	file, _ := os.OpenFile(jsonFileName, os.O_CREATE, os.ModePerm)
-	defer file.Close()
-
-	// Write to JSON file
-	encoder := json.NewEncoder(file)
+	// Write to JSON jsonFile
+	jsonFile, _ := os.OpenFile(jsonFileName, os.O_CREATE, os.ModePerm)
+	defer jsonFile.Close()
+	encoder := json.NewEncoder(jsonFile)
 	encoder.Encode(demodata)
-
-	// if err != nil {
-	// 	fmt.Println("Error encoding JSON:", err)
-	// 	return C.bool(false)
-	// }
-
-	// err = os.WriteFile(jsonFileName, jsonData, 0644)
-	// if err != nil {
-	// 	fmt.Println("Error writing JSON file:", err)
-	// 	return C.bool(false)
-	// }
 
 	return C.bool(true)
 }
