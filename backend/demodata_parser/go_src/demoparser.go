@@ -8,7 +8,6 @@ import "C"
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
@@ -157,21 +156,10 @@ func ParseDemo(filename *C.char) C.bool {
 		return C.bool(false)
 	}
 	defer jsonFile.Close()
-	encoder := json.NewEncoder(jsonFile)
 
 	// Create new parser
 	parser := demoinfocs.NewParser(demodataFile)
 	defer parser.Close()
-
-	// JSON: Write header info
-	parser.ParseHeader()
-	jsonFile.WriteString("{\n")
-	jsonFile.WriteString(fmt.Sprintf("\"tick_rate\": %f,\n", parser.TickRate()))
-	jsonFile.WriteString(fmt.Sprintf("\"total_ticks\": %d,\n", parser.Header().PlaybackFrames))
-	jsonFile.WriteString(fmt.Sprintf("\"tick_rate\": \"%s\",\n", parser.Header().MapName))
-
-	// JSON: Write the opening bracket
-	jsonFile.WriteString("\"ticks\": [\n")
 
 	var kills []Kill
 	var roundStarted bool
@@ -285,17 +273,21 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 	})
 
-	// Tick data
-	// TODO: Needs heavy refactoring
-	parser.RegisterEventHandler(func(e events.FrameDone) {
-		var players []Player
-		var nades []Nade
+	// JSON: Write the opening bracket and "ticks" array
+	jsonFile.WriteString("{\"ticks\": [\n")
+	firstTick := true
 
+	// Tick data
+	parser.RegisterEventHandler(func(e events.FrameDone) {
+		// JSON: write comma after every object, except before the first and after the last one
+		if !firstTick {
+			jsonFile.WriteString(",\n")
+		}
 		// Players
+		players := []Player{}
 		for _, player := range parser.GameState().Participants().Playing() {
 			if player.IsAlive() {
 				pos := player.Position()
-
 				players = append(players, Player{
 					SteamID:     player.SteamID64,
 					Name:        player.Name,
@@ -321,14 +313,16 @@ func ParseDemo(filename *C.char) C.bool {
 					Deaths:      player.Deaths(),
 					Assists:     player.Assists(),
 					DMG:         player.TotalDamage(),
-					ADR:         calculateADR(player.TotalDamage(), parser.GameState().TotalRoundsPlayed()), // avg damage / round
-					IsPlanting:  player.IsPlanting,
-					IsDefusing:  player.IsDefusing,
+					// avg damage / round
+					ADR:        calculateADR(player.TotalDamage(), parser.GameState().TotalRoundsPlayed()),
+					IsPlanting: player.IsPlanting,
+					IsDefusing: player.IsDefusing,
 				})
 			}
 		}
 
 		// Grenades
+		nades := []Nade{}
 		for _, nade := range parser.GameState().GrenadeProjectiles() {
 			nades = append(nades, Nade{
 				Type: nade.WeaponInstance.Type.String(),
@@ -341,7 +335,6 @@ func ParseDemo(filename *C.char) C.bool {
 
 		// Bomb
 		bomb := parser.GameState().Bomb()
-
 		bombStruct := Bomb{
 			Carrier:     checkPlayerName(bomb.Carrier),
 			X:           bomb.Position().X,
@@ -370,13 +363,15 @@ func ParseDemo(filename *C.char) C.bool {
 			DecoyEvents:   decoyEvents,
 		}
 
-		// JSON: Write the tick to the JSON file
-		encoder.Encode(tick)
-		if parser.CurrentFrame() != (parser.Header().PlaybackFrames) {
-			jsonFile.WriteString(",\n")
+		// JSON: Write the tick and comma
+		tickJSON, err := json.Marshal(tick)
+		if err != nil {
+			log.Panic("Error encoding tick to JSON: ", err)
 		}
+		jsonFile.WriteString(string(tickJSON))
+		firstTick = false
 
-		// These values need to be reset to false/nil before the next tick
+		// Reset before the next tick
 		roundStarted = false
 		kills = nil
 		fireEvents = nil
@@ -394,8 +389,7 @@ func ParseDemo(filename *C.char) C.bool {
 	}
 
 	// JSON: Write the closing brackets
-	jsonFile.WriteString("]\n")
-	jsonFile.WriteString("}\n")
+	jsonFile.WriteString("\n]}")
 
 	return C.bool(true)
 }
