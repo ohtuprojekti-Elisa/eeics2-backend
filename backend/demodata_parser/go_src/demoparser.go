@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 
@@ -82,11 +83,18 @@ type BombDefused struct {
 	Defuser string `json:"defuser"`
 }
 
-type DemoData struct {
+type Header struct {
+	DemoHeader DemoInfo `json:"demo_info"`
+}
+
+type Ticks struct {
+	AllTicks []Tick `json:"ticks"`
+}
+
+type DemoInfo struct {
 	TickRate   float64 `json:"tick_rate"`
 	TotalTicks int     `json:"total_ticks"`
 	MapName    string  `json:"map_name"`
-	Ticks      []Tick  `json:"ticks"`
 }
 
 type FireEvent struct {
@@ -130,9 +138,11 @@ type Tick struct {
 
 //export ParseDemo
 func ParseDemo(filename *C.char) C.bool {
+	// Get and set filenames
 	demodataFileName := C.GoString(filename)
 	jsonFileName := demodataFileName[:len(demodataFileName)-len(".dem")] + ".json"
 
+	// Open CS2 demodata-file
 	demodataFile, err := os.Open(demodataFileName)
 	if err != nil {
 		log.Panic("failed to open demo file: ", err)
@@ -140,11 +150,29 @@ func ParseDemo(filename *C.char) C.bool {
 	}
 	defer demodataFile.Close()
 
+	// JSON: Create new file
+	jsonFile, err := os.OpenFile(jsonFileName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		log.Panic("failed to open/create JSON file: ", err)
+		return C.bool(false)
+	}
+	defer jsonFile.Close()
+	encoder := json.NewEncoder(jsonFile)
+
+	// Create new parser
 	parser := demoinfocs.NewParser(demodataFile)
 	defer parser.Close()
 
-	var demodata DemoData
-	var ticks []Tick
+	// JSON: Write header info
+	parser.ParseHeader()
+	jsonFile.WriteString("{\n")
+	jsonFile.WriteString(fmt.Sprintf("\"tick_rate\": %f,\n", parser.TickRate()))
+	jsonFile.WriteString(fmt.Sprintf("\"total_ticks\": %d,\n", parser.Header().PlaybackFrames))
+	jsonFile.WriteString(fmt.Sprintf("\"tick_rate\": \"%s\",\n", parser.Header().MapName))
+
+	// JSON: Write the opening bracket
+	jsonFile.WriteString("\"ticks\": [\n")
+
 	var kills []Kill
 	var roundStarted bool
 	var bombPlanted BombPlanted
@@ -325,7 +353,7 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 
 		// Tick
-		ticks = append(ticks, Tick{
+		tick := Tick{
 			Tick:          parser.CurrentFrame(),
 			RoundStarted:  roundStarted,
 			TeamT:         parser.GameState().TeamTerrorists().ClanName(),
@@ -340,7 +368,13 @@ func ParseDemo(filename *C.char) C.bool {
 			SmokeEvents:   smokeEvents,
 			InfernoEvents: inferEvents,
 			DecoyEvents:   decoyEvents,
-		})
+		}
+
+		// JSON: Write the tick to the JSON file
+		encoder.Encode(tick)
+		if parser.CurrentFrame() != (parser.Header().PlaybackFrames) {
+			jsonFile.WriteString(",\n")
+		}
 
 		// These values need to be reset to false/nil before the next tick
 		roundStarted = false
@@ -359,17 +393,9 @@ func ParseDemo(filename *C.char) C.bool {
 		return C.bool(false)
 	}
 
-	// Build demodata
-	demodata.TickRate = parser.TickRate()
-	demodata.TotalTicks = parser.Header().PlaybackFrames
-	demodata.MapName = parser.Header().MapName
-	demodata.Ticks = ticks
-
-	// Write to JSON jsonFile
-	jsonFile, _ := os.OpenFile(jsonFileName, os.O_CREATE, os.ModePerm)
-	defer jsonFile.Close()
-	encoder := json.NewEncoder(jsonFile)
-	encoder.Encode(demodata)
+	// JSON: Write the closing brackets
+	jsonFile.WriteString("]\n")
+	jsonFile.WriteString("}\n")
 
 	return C.bool(true)
 }
