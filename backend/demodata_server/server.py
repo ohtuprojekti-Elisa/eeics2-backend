@@ -85,7 +85,11 @@ class DemodataServer:
         """Streams demodata to EEICT clients using the given interval.
 
         Default: 64 ticks/second = 15.625 ms.
+        If tickrate is not available in demofile, parser will return -1.
         """
+        if interval_ms == -1:
+            interval_ms = 15.625
+
         if len(self.connected_clients) > 0:
             self.tick_fetch_interval = PeriodicCallback(
                 self._fetch_tick, interval_ms
