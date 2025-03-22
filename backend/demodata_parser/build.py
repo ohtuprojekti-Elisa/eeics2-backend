@@ -10,7 +10,6 @@ subprocess.run(
         "-o",
         "../demoparser.so",
         "-buildmode=c-shared",
-        "demoparser.go",
     ],
     check=True,
     env={**os.environ, "CGO_ENABLED": "1"},
