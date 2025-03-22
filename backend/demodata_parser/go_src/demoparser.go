@@ -29,7 +29,7 @@ func ParseDemo(filename *C.char) C.bool {
 
 	// JSON: Create new files (tics & config)
 	// Ticks
-	jsonFileNameTicks := demodataFileName[:len(demodataFileName)-len(".dem")] + "_ticks.json"
+	jsonFileNameTicks := demodataFileName[:len(demodataFileName)-len(".dem")] + ".json"
 	jsonFileTicks, err := os.OpenFile(jsonFileNameTicks, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		log.Panic("failed to open/create JSON file: ", err)
