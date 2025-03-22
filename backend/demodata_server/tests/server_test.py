@@ -10,19 +10,15 @@ class TestDemodataServer(unittest.TestCase):
         self.srv_port = 8080
         self.srv_endpoint = "/test"
         self.developer_mode = False
-        self.demodata_server = DemodataServer(
-            self.srv_address,
-            self.srv_port,
-            self.srv_endpoint,
-            self.developer_mode,
-        )
+        self.overwrite_mode = False
+        self.demodata_server = DemodataServer()
         self.filename = Path("test.json")
 
     def test_demodata_input(self):
         # Arrange
         expected_output = self.filename
         # Act
-        output = self.demodata_server.demodata_input(self.filename)
+        output = self.demodata_server.ticks_file(self.filename)
         # Assert
         assert output == expected_output
 

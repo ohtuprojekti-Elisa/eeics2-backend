@@ -8,13 +8,14 @@ class TestDemodataParser(unittest.TestCase):
     def setUp(self) -> None:
         self.demo_filename = Path("test.dem")
         self.json_filename = Path("test.json")
+        self.overwrite = False
         self.parser = DemodataParser()
 
     def test_demofile_true(self):
         # Arrange
         expected_output = self.demo_filename
         # Act
-        output = self.parser.demofile(self.demo_filename)
+        output = self.parser.demofile(self.demo_filename, self.overwrite)
         # Assert
         assert output == expected_output
 
@@ -24,13 +25,13 @@ class TestDemodataParser(unittest.TestCase):
         error_input = Path("testfile.xyz")
         # Act & Assert
         with self.assertRaises(ValueError) as context:
-            self.parser.demofile(error_input)
+            self.parser.demofile(error_input, self.overwrite)
         self.assertEqual(str(context.exception), expected_output)
 
     def test_parse_filename_true(self):
         # Arrange
         expected_output = self.json_filename
-        self.parser.demofile(self.demo_filename)
+        self.parser.demofile(self.demo_filename, self.overwrite)
         # Act
         output = self.parser.parse_filename()
         # Assert

@@ -1,7 +1,7 @@
 package main
 
 type HeaderData struct {
-	TickRate   float64 `json:"tick_rate"`
+	TickRate   float64 `json:"tickrate"`
 	TotalTicks int     `json:"total_ticks"`
 	MapName    string  `json:"map_name"`
 }

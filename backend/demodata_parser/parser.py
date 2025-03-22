@@ -17,6 +17,7 @@ class DemodataParser:
         self.class_name = "PARSER"  # Temp before custom logger is implemented
         self.demo_filename: Path = Path()
         self.json_filename: Path = Path()
+        self.overwrite: bool = False
         self.parsing_result = False
 
     def _ext_parser(self) -> None:
@@ -29,11 +30,12 @@ class DemodataParser:
             ctypes.c_char_p(str(self.demo_filename).encode("utf-8"))
         )
 
-    def demofile(self, filename: Path) -> Path:
-        """Checks that the file extension is .dem."""
+    def demofile(self, filename: Path, overwrite: bool) -> Path:
+        """Checks that the file extension is .dem and sets overwrite status."""
         if filename.suffix != ".dem":
             raise ValueError(msg.INVALID_DEMOFILE)
         self.demo_filename = filename
+        self.overwrite = overwrite
         return self.demo_filename
 
     def parse_filename(self) -> Path:
@@ -51,7 +53,7 @@ class DemodataParser:
     def parse(self) -> bool:
         """Initiates the parsing process and handles the result."""
         self.parse_filename()
-        if self.json_filename.exists():
+        if self.json_filename.exists() and self.overwrite == False:
             logging.info(
                 f"{self.class_name} - {self.json_filename} {msg.PARSE_SKIP}"
             )

@@ -13,7 +13,35 @@ logging.basicConfig(
 
 # Load settings file
 with open(Path(__file__).parent / "settings.json") as f:
-    settings = json.load(f)
+    settings_file = json.load(f)
+
+
+def get_arguments() -> argparse.Namespace:
+    """Parse and return command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Process and stream given CS2 demodata file to EEICT-client. "
+        "Arguments can be combined i.e.: -lof mirage.dem (reparses and loops mirage.dem)"
+    )
+    parser.add_argument(
+        "-f",
+        "--file",
+        type=str,
+        required=True,
+        help="input CS2 demodata filename: -f mirage.dem",
+    )
+    parser.add_argument(
+        "-l",
+        "--loop",
+        action="store_true",
+        help="enter loop mode to stream until stopped: -l -f mirage.dem",
+    )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="overwrites previously parsed JSON files: -o -f mirage.med",
+    )
+    return parser.parse_args()
 
 
 def get_relative_path(filename: str) -> Path:
@@ -27,54 +55,33 @@ def get_relative_path(filename: str) -> Path:
     return relative_path
 
 
-def parser_process(filename: Path, queue: Queue) -> None:
+def parser_process(filename: Path, overwrite: bool, queue: Queue) -> None:
     """Run the parser process on the demodata file."""
     demodata_parser = DemodataParser()
-    demodata_parser.demofile(filename)
+    demodata_parser.demofile(filename, overwrite)
     parser_status = demodata_parser.parse()
     parsed_filename = demodata_parser.parse_filename()
     queue.put((parser_status, parsed_filename))
 
 
-def server_process(filename: Path, developer_mode: bool) -> None:
+def server_process(filename: Path, loop_mode: bool) -> None:
     """Run the server process to stream the demodata."""
-    demodata_server = DemodataServer(
-        settings["srv_address"],
-        settings["srv_port"],
-        settings["srv_endpoint"],
-        developer_mode,
+    demodata_server = DemodataServer()
+    demodata_server.ticks_file(filename)
+    demodata_server.start_server(
+        settings_file["srv_address"],
+        settings_file["srv_port"],
+        settings_file["srv_endpoint"],
+        loop_mode,
     )
-    demodata_server.demodata_input(filename)
-    demodata_server.start_server()
 
 
-def get_arguments() -> argparse.Namespace:
-    """Parse and return command-line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Process and stream CS2 demodata file."
-    )
-    parser.add_argument(
-        "-f",
-        "--file",
-        type=str,
-        required=True,
-        help="input CS2 demodata filename: -f mirage.dem",
-    )
-    parser.add_argument(
-        "-d",
-        "--developer",
-        action="store_true",
-        help="enter developer mode (bool), skips parser, use custom JSON: -d -f dev.json",
-    )
-    return parser.parse_args()
-
-
-def start_processes(filename: Path, developer_mode: bool) -> None:
+def start_processes(filename: Path, overwrite: bool, loop_mode: bool) -> None:
     """Start the parser and server processes."""
     process_queue = Queue()
-    if not developer_mode and filename is not None:
+    if filename is not None:
         parser_proc = Process(
-            target=parser_process, args=(filename, process_queue)
+            target=parser_process, args=(filename, overwrite, process_queue)
         )
         parser_proc.start()
         parser_proc.join()
@@ -83,9 +90,9 @@ def start_processes(filename: Path, developer_mode: bool) -> None:
     else:
         parser_status = True
 
-    if (parser_status or developer_mode) and filename is not None:
+    if (parser_status or loop_mode) and filename is not None:
         server_proc = Process(
-            target=server_process, args=(filename, developer_mode)
+            target=server_process, args=(filename, loop_mode)
         )
         server_proc.start()
         server_proc.join()
@@ -97,7 +104,8 @@ if __name__ == "__main__":
     # Set arguments
     args = get_arguments()
     filename = get_relative_path(args.file)
-    developer_mode = args.developer
+    loop_mode = args.loop
+    overwrite_mode = args.overwrite
 
     # Start processes
-    start_processes(filename, developer_mode)
+    start_processes(filename, overwrite_mode, loop_mode)

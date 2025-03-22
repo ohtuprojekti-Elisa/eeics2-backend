@@ -33,19 +33,16 @@ class DemoDataWSH(WebSocketHandler):
 class DemodataServer:
     """Handles WebSocket connections to EEICT client(s)."""
 
-    def __init__(
-        self,
-        srv_address: str,
-        srv_port: int,
-        srv_endpoint: str,
-        developer_mode: bool = False,
-    ):
+    def __init__(self):
         self.class_name = "SERVER"  # Temp before custom logger is implemented
-        self.srv_address = srv_address
-        self.srv_port = srv_port
-        self.srv_endpoint = srv_endpoint
-        self.developer_mode = developer_mode
-        self.filename = ""
+        self.srv_address: str = ""
+        self.srv_port: int = -1
+        self.srv_endpoint: str = ""
+        self.loop_mode: bool = False
+        self.ticks_filename: Path = Path()
+        self.map_name: str = ""
+        self.interval_ms: float = 15.625  # Default for 64 ticks/sec.
+        self.total_ticks: int = -1
         self.connected_clients: set[DemoDataWSH] = set()
         self.ticks = self._ticks_chopper()
         self.tick_fetch_interval: PeriodicCallback = PeriodicCallback(
@@ -53,7 +50,7 @@ class DemodataServer:
         )
 
     def open(self, handler: DemoDataWSH) -> int:
-        """Handles new connections, sends messages to client and starts streaming."""
+        """Handles new connections, sends messages to client and starts the stream."""
         self.connected_clients.add(handler)
         logging.info(
             f"{self.class_name} - {msg.CLIENT_NEW_CONNECTION}: {handler.request.remote_ip}"
@@ -81,21 +78,43 @@ class DemodataServer:
             f"{self.class_name} - {msg.CLIENT_TOTAL_NUM}: {connected_clients}"
         )
 
-    def _stream_start(self, interval_ms: float = 15.625) -> bool:
-        """Streams demodata to EEICT clients using the given interval.
+    def _server_info(self) -> str:
+        """Formats server info to a single string."""
+        return f"{self.class_name} - {self.srv_address}:{self.srv_port}/{self.srv_endpoint}"
 
-        Default: 64 ticks/second = 15.625 ms.
-        If tickrate is not available in demofile, parser will return -1.
-        """
-        if interval_ms == -1:
-            interval_ms = 15.625
+    def _stream_start(self) -> bool:
+        """Streams ticks to EEICT clients using the calculated interval (ms)."""
 
         if len(self.connected_clients) > 0:
             self.tick_fetch_interval = PeriodicCallback(
-                self._fetch_tick, interval_ms
+                self._fetch_tick, self.interval_ms
             )
             self.tick_fetch_interval.start()
         return self.tick_fetch_interval.is_running()
+
+    def _config_file(self) -> Path:
+        """Creates $_config.json path from $.json path."""
+        config_filename = self.ticks_filename.with_name(
+            f"{self.ticks_filename.stem}_config.json"
+        )
+        return config_filename
+
+    def _read_config(self) -> bool:
+        """Reads configuration from $_config.json and assigns it to vars."""
+        config_filename = self._config_file()
+        with open(Path(config_filename)) as f:
+            config = json.load(f)
+            self.interval_ms = self._tickrate_to_interval(config["tickrate"])
+            self.total_ticks = config["total_ticks"]
+            self.map_name = config["map_name"]
+        return True
+
+    def _tickrate_to_interval(self, tickrate: int) -> float:
+        """Takes tickrate and converts it to interval (ms) also forces TR to be at least 64."""
+        if tickrate < 64:
+            tickrate = 64
+        interval_ms = 1000 / tickrate
+        return interval_ms
 
     def _stream_pause(self) -> bool:
         """Pause stream if no connected clients."""
@@ -118,9 +137,9 @@ class DemodataServer:
                 return
             IOLoop.current().add_callback(self._stream_tick, next_tick)
         except StopIteration:
-            if self.developer_mode:
+            if self.loop_mode:
                 self.ticks = self._ticks_chopper()
-                logging.info(f"{self.class_name} - {msg.STREAM_DEV_MODE}")
+                logging.info(f"{self.class_name} - {msg.STREAM_LOOP_MODE}")
             else:
                 IOLoop.current().add_callback(self._stream_tick, "EOF")
                 self.tick_fetch_interval.stop()
@@ -142,7 +161,7 @@ class DemodataServer:
         a large JSON files directly from hard-drive, without first loading it
         to main memory.
         """
-        with open(self.filename, "r") as file:
+        with open(self.ticks_filename, "r") as file:
             for tick in ijson.items(
                 file,
                 "ticks.item",
@@ -150,20 +169,29 @@ class DemodataServer:
             ):
                 yield json.dumps(tick)
 
-    def demodata_input(self, filename: Path) -> Path:
-        """Handles the input file for demodata."""
-        self.filename = filename
+    def ticks_file(self, ticks_filename: Path) -> Path:
+        """Handles the input file for $.json (ticks)."""
+        self.ticks_filename = ticks_filename
         logging.info(
-            f"{self.class_name} - {msg.STREAM_INPUT_FILE}: {self.filename}"
+            f"{self.class_name} - {msg.STREAM_INPUT_FILE}: {self.ticks_filename}"
         )
-        return filename
+        return ticks_filename
 
-    def _server_info(self) -> str:
-        """Formats server info to a single string."""
-        return f"{self.class_name} - {self.srv_address}:{self.srv_port}/{self.srv_endpoint}"
-
-    def start_server(self) -> None:
+    def start_server(
+        self,
+        srv_address: str,
+        srv_port: int,
+        srv_endpoint: str,
+        loop_mode: bool,
+    ) -> None:
         """Starts the demodata server."""
+        self.srv_address = srv_address
+        self.srv_port = srv_port
+        self.srv_endpoint = srv_endpoint
+        self.loop_mode = loop_mode
+        # Read config file
+        self._read_config()
+        # Start server
         app = Application(
             [(self.srv_endpoint, DemoDataWSH, dict(server=self))]
         )
