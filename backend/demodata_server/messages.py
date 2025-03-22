@@ -15,3 +15,5 @@ STREAM_ENDED = "Stream ended!"
 STREAM_TICK_NOT_INIT = "Tick stream is not initialized."
 STREAM_LOOP_MODE = "Stream restarting (loop mode active)!"
 STREAM_PAUSED = "Streaming paused..."
+
+FILE_CONFIG_ERROR = "Error reading config file"

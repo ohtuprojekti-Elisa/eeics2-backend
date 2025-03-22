@@ -99,15 +99,19 @@ class DemodataServer:
         )
         return config_filename
 
-    def _read_config(self) -> bool:
+    def _read_config(self) -> None:
         """Reads configuration from $_config.json and assigns it to vars."""
         config_filename = self._config_file()
-        with open(Path(config_filename)) as f:
-            config = json.load(f)
-            self.interval_ms = self._tickrate_to_interval(config["tickrate"])
-            self.total_ticks = config["total_ticks"]
-            self.map_name = config["map_name"]
-        return True
+        try:
+            with open(Path(config_filename)) as f:
+                config = json.load(f)
+                self.interval_ms = self._tickrate_to_interval(
+                    config["tickrate"]
+                )
+                self.total_ticks = config["total_ticks"]
+                self.map_name = config["map_name"]
+        except Exception as e:
+            logging.error(f"{self.class_name} - {msg.FILE_CONFIG_ERROR}: {e}")
 
     def _tickrate_to_interval(self, tickrate: int) -> float:
         """Takes tickrate and converts it to interval (ms) also forces TR to be at least 64."""
