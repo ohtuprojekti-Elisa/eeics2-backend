@@ -5,6 +5,8 @@ A prototype mixed reality (AR/VR) tool for Counter-Strike 2 coaching, developed 
 ## Status
 [![Sync backend to version.helsinki.fi](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml/badge.svg?branch=main)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/push-to-version.helsinki.fi.yaml)
 
+[![Backend unit tests](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/test_backend.yaml/badge.svg)](https://github.com/ohtuprojekti-Elisa/elisaohtuprojekti/actions/workflows/test_backend.yaml)
+
 ## Implementation
 - Implemented for Meta Quest VR headsets (Android-based)
 - Developed in Unity environment (C#)
