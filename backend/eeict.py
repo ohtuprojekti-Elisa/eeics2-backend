@@ -24,27 +24,41 @@ def get_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "-f",
-        "--file",
         type=str,
         required=True,
+        dest="filename",
         help="input CS2 demodata filename: -f mirage.dem",
     )
     parser.add_argument(
         "-l",
-        "--loop",
+        dest="loop",
         action="store_true",
+        required=False,
+        default=False,
         help="enter loop mode to stream until stopped: -l -f mirage.dem",
     )
     parser.add_argument(
         "-o",
-        "--overwrite",
+        dest="overwrite",
         action="store_true",
+        required=False,
+        default=False,
         help="overwrites previously parsed JSON files: -o -f mirage.med",
+    )
+    parser.add_argument(
+        "-p",
+        dest="frame",
+        type=int,
+        required=False,
+        default=1,
+        help='play Nth frame, i.e. "-p 2" plays every 2nd frame: -p 2 -f mirage.med',
     )
     return parser.parse_args()
 
 
-def get_relative_path(filename: str) -> Path:
+def get_relative_path(
+    filename: str,
+) -> Path:
     """Get the relative path of the demodata file."""
     demofile_folder = "demofiles"
     full_path = Path(__file__).parent / demofile_folder / filename
@@ -55,7 +69,11 @@ def get_relative_path(filename: str) -> Path:
     return relative_path
 
 
-def parser_process(filename: Path, overwrite: bool, queue: Queue) -> None:
+def parser_process(
+    filename: Path,
+    overwrite: bool,
+    queue: Queue,
+) -> None:
     """Run the parser process on the demodata file."""
     demodata_parser = DemodataParser()
     demodata_parser.demofile(filename, overwrite)
@@ -64,7 +82,11 @@ def parser_process(filename: Path, overwrite: bool, queue: Queue) -> None:
     queue.put((parser_status, parsed_filename))
 
 
-def server_process(filename: Path, loop_mode: bool) -> None:
+def server_process(
+    filename: Path,
+    loop_mode: bool,
+    play_nth: int,
+) -> None:
     """Run the server process to stream the demodata."""
     demodata_server = DemodataServer()
     demodata_server.ticks_file(filename)
@@ -73,12 +95,19 @@ def server_process(filename: Path, loop_mode: bool) -> None:
         settings_file["srv_port"],
         settings_file["srv_endpoint"],
         loop_mode,
+        play_nth,
     )
 
 
-def start_processes(filename: Path, overwrite: bool, loop_mode: bool) -> None:
+def start_processes(
+    filename: Path,
+    overwrite: bool,
+    loop_mode: bool,
+    play_nth: int,
+) -> None:
     """Start the parser and server processes."""
     process_queue = Queue()
+    # Parser
     if filename is not None:
         parser_proc = Process(
             target=parser_process, args=(filename, overwrite, process_queue)
@@ -89,10 +118,10 @@ def start_processes(filename: Path, overwrite: bool, loop_mode: bool) -> None:
         filename = parsed_filename
     else:
         parser_status = True
-
+    # Server
     if (parser_status or loop_mode) and filename is not None:
         server_proc = Process(
-            target=server_process, args=(filename, loop_mode)
+            target=server_process, args=(filename, loop_mode, play_nth)
         )
         server_proc.start()
         server_proc.join()
@@ -103,9 +132,10 @@ def start_processes(filename: Path, overwrite: bool, loop_mode: bool) -> None:
 if __name__ == "__main__":
     # Set arguments
     args = get_arguments()
-    filename = get_relative_path(args.file)
+    filename = get_relative_path(args.filename)
     loop_mode = args.loop
     overwrite_mode = args.overwrite
+    play_nth = args.frame
 
     # Start processes
-    start_processes(filename, overwrite_mode, loop_mode)
+    start_processes(filename, overwrite_mode, loop_mode, play_nth)
