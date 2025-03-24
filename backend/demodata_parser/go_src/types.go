@@ -25,6 +25,7 @@ type Player struct {
 	Kit         bool     `json:"kit"`
 	IsDucking   bool     `json:"is_ducking"`
 	IsWalking   bool     `json:"is_walking"`
+	IsStanding  bool     `json:"is_standing"`
 	IsAirborne  bool     `json:"is_air"`
 	IsReloading bool     `json:"is_rld"`
 	Kills       int      `json:"kills"`

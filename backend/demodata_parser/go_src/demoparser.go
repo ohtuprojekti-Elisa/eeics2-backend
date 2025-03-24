@@ -194,6 +194,7 @@ func ParseDemo(filename *C.char) C.bool {
 					Kit:         player.HasDefuseKit(),
 					IsDucking:   player.IsDucking(),
 					IsWalking:   player.IsWalking(),
+					IsStanding:  player.IsStanding(),
 					IsReloading: player.IsReloading,
 					IsAirborne:  player.IsAirborne(),
 					Kills:       player.Kills(),
