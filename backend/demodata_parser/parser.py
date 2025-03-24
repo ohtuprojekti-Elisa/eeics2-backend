@@ -30,7 +30,7 @@ class DemodataParser:
             ctypes.c_char_p(str(self.demo_filename).encode("utf-8"))
         )
 
-    def demofile(self, filename: Path, overwrite: bool) -> Path:
+    def demofile(self, filename: Path, overwrite: bool = False) -> Path:
         """Checks that the file extension is .dem and sets overwrite status."""
         if filename.suffix != ".dem":
             raise ValueError(msg.INVALID_DEMOFILE)
