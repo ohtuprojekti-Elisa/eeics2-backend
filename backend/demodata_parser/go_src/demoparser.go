@@ -58,6 +58,26 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 	})
 
+	// HE Grenades
+	var heEvents []HeEvent
+	parser.RegisterEventHandler(func(e events.HeExplode) {
+		heEvents = append(heEvents, HeEvent{
+			X: e.Position.X,
+			Y: e.Position.Y,
+			Z: e.Position.Z,
+		})
+	})
+
+	// Flashbangs
+	var flashEvents []FlashEvent
+	parser.RegisterEventHandler(func(e events.FlashExplode) {
+		flashEvents = append(flashEvents, FlashEvent{
+			X: e.Position.X,
+			Y: e.Position.Y,
+			Z: e.Position.Z,
+		})
+	})
+
 	// Smokes
 	var smokeEvents []SmokeEvent
 	parser.RegisterEventHandler(func(e events.SmokeStart) {
@@ -159,6 +179,12 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 	})
 
+	var footStepID uint64
+	footStepID = 0
+	parser.RegisterEventHandler(func(e events.Footstep) {
+		footStepID = e.Player.SteamID64
+	})
+
 	// JSON: Write the opening bracket and "ticks" array
 	jsonFileTicks.WriteString("{\"ticks\": [\n")
 	firstTick := true
@@ -195,6 +221,7 @@ func ParseDemo(filename *C.char) C.bool {
 					IsDucking:   player.IsDucking(),
 					IsWalking:   player.IsWalking(),
 					IsStanding:  player.IsStanding(),
+					MadeFtstp:   player.SteamID64 == footStepID,
 					IsReloading: player.IsReloading,
 					IsAirborne:  player.IsAirborne(),
 					Kills:       player.Kills(),
@@ -213,6 +240,7 @@ func ParseDemo(filename *C.char) C.bool {
 		var nades []Nade
 		for _, nade := range parser.GameState().GrenadeProjectiles() {
 			nades = append(nades, Nade{
+				ID:   nade.UniqueID(),
 				Type: nade.WeaponInstance.Type.String(),
 				X:    nade.Position().X,
 				Y:    nade.Position().Y,
@@ -246,6 +274,8 @@ func ParseDemo(filename *C.char) C.bool {
 			FireEvents:    fireEvents,
 			Kills:         kills,
 			Nades:         nades,
+			HeEvents:      heEvents,
+			FlashEvents:   flashEvents,
 			SmokeEvents:   smokeEvents,
 			InfernoEvents: inferEvents,
 			DecoyEvents:   decoyEvents,
@@ -262,10 +292,13 @@ func ParseDemo(filename *C.char) C.bool {
 		roundStarted = false
 		kills = nil
 		fireEvents = nil
+		heEvents = nil
+		flashEvents = nil
 		smokeEvents = nil
 		inferEvents = nil
 		decoyEvents = nil
 		bombExploded = false
+		footStepID = 0
 		firstTick = false
 	})
 

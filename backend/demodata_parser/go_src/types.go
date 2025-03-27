@@ -26,6 +26,7 @@ type Player struct {
 	IsDucking   bool     `json:"is_ducking"`
 	IsWalking   bool     `json:"is_walking"`
 	IsStanding  bool     `json:"is_standing"`
+	MadeFtstp   bool     `json:"made_ftstp"`
 	IsAirborne  bool     `json:"is_air"`
 	IsReloading bool     `json:"is_rld"`
 	Kills       int      `json:"kills"`
@@ -46,6 +47,7 @@ type Kill struct {
 }
 
 type Nade struct {
+	ID   int64   `json:"id"`
 	Type string  `json:"type"`
 	X    float64 `json:"x"`
 	Y    float64 `json:"y"`
@@ -87,6 +89,18 @@ type DemoInfo struct {
 	MapName    string  `json:"map_name"`
 }
 
+type HeEvent struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
+}
+
+type FlashEvent struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
+}
+
 type FireEvent struct {
 	ShooterID uint64 `json:"sid"`
 }
@@ -121,6 +135,8 @@ type Tick struct {
 	Kills         []Kill         `json:"kills"`
 	Nades         []Nade         `json:"nades"`
 	FireEvents    []uint64       `json:"shooting"`
+	HeEvents      []HeEvent      `json:"he_events"`
+	FlashEvents   []FlashEvent   `json:"flash_events"`
 	SmokeEvents   []SmokeEvent   `json:"smoke_events"`
 	InfernoEvents []InfernoEvent `json:"infer_events"`
 	DecoyEvents   []DecoyEvent   `json:"decoy_events"`
