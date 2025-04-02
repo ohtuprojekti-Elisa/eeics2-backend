@@ -74,6 +74,7 @@ __pycache__
 **/demofiles/**/*.dem
 **/demofiles/*.json
 !**/demofiles/c4.dem
+!**/demofiles/defuse.dem
 
 # Go build specific
 demoparser.h
