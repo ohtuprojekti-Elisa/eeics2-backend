@@ -2,7 +2,6 @@ import json
 import ijson
 import logging
 from pathlib import Path
-from decimal import Decimal
 from tornado.web import Application
 from tornado.ioloop import PeriodicCallback, IOLoop
 from tornado.websocket import WebSocketHandler
@@ -18,6 +17,7 @@ logging.basicConfig(
 class DemoDataWSH(WebSocketHandler):
     def initialize(self, server):
         self.server = server
+        self.last_tick_sent = 0
 
     def open(self):
         self.server.open(self)
@@ -26,8 +26,7 @@ class DemoDataWSH(WebSocketHandler):
         self.server.on_close(self)
 
     async def on_message(self, message):
-        # Handle incoming messages if needed
-        pass
+        await self.server.on_message(self, message)
 
 
 class DemodataServer:
@@ -57,6 +56,9 @@ class DemodataServer:
         self.play_threshold: int = 0
         self.skip_counter: int = 0
         self.stream_interval: float = 0.0
+        # Burst mode
+        self.burst_size = 640  # Number of packed ticks
+        self.burst_mode = True
 
     def open(self, handler: DemoDataWSH) -> int:
         """Handles new connections, sends messages to client and starts the stream."""
@@ -66,8 +68,13 @@ class DemodataServer:
         )
         logging.info(f"{self.class_name} - {self.total_clients()}")
         handler.write_message(f"{self.class_name} - {msg.CLIENT_WELCOME}")
-        handler.write_message(f"{self.class_name} - {msg.CLIENT_START_STREAM}")
-        self._stream_start()
+        if self.burst_mode:
+            IOLoop.current().add_callback(self.send_tick_burst, handler)
+        else:
+            handler.write_message(
+                f"{self.class_name} - {msg.CLIENT_START_STREAM}"
+            )
+            self._stream_start()
         return len(self.connected_clients)
 
     def on_close(self, handler: DemoDataWSH) -> int:
@@ -79,6 +86,20 @@ class DemodataServer:
         logging.info(f"{self.class_name} - {self.total_clients()}")
         self._stream_pause()
         return len(self.connected_clients)
+
+    async def on_message(self, handler: DemoDataWSH, message: str) -> None:
+        """Handles messages from clients."""
+        try:
+            data = json.loads(message)
+            if data.get("request") == "more_ticks":
+                logging.info(
+                    f"{self.class_name} - Client requested more ticks"
+                )
+                await self.send_tick_burst(handler)
+        except json.JSONDecodeError:
+            logging.warning(
+                f"{self.class_name} - Invalid JSON received from client: {message}"
+            )
 
     def total_clients(self) -> str:
         """Formats info on clients to a single string."""
@@ -189,13 +210,76 @@ class DemodataServer:
             for client in list(self.connected_clients):
                 try:
                     await client.write_message(tick)
+                    # Update the last tick number sent for this client
+                    try:
+                        tick_data = json.loads(tick)
+                        # Check for different possible key names for tick number
+                        if "tick_number" in tick_data:
+                            client.last_tick_sent = tick_data["tick_number"]
+                        elif "tick" in tick_data:
+                            client.last_tick_sent = tick_data["tick"]
+                    except (json.JSONDecodeError, KeyError, TypeError):
+                        logging.debug(
+                            f"{self.class_name} - Could not extract tick number from: {tick[:100]}..."
+                        )
                 except Exception:
                     self.connected_clients.discard(client)
+
+    async def send_tick_burst(self, client):
+        """Send a burst of ticks to a specific client."""
+        logging.info(
+            f"{self.class_name} - Sending tick burst of {self.burst_size} ticks"
+        )
+        ticks_sent = 0
+        tick_batch = []
+        last_tick_number = client.last_tick_sent
+        try:
+            for _ in range(self.burst_size):
+                try:
+                    if self.ticks:
+                        tick = next(self.ticks)
+                        tick_batch.append(tick)
+                        ticks_sent += 1
+                        try:
+                            tick_data = json.loads(tick)
+                            if "tick_number" in tick_data:
+                                last_tick_number = tick_data["tick_number"]
+                            elif "tick" in tick_data:
+                                last_tick_number = tick_data["tick"]
+                        except (json.JSONDecodeError, KeyError, TypeError):
+                            logging.debug(
+                                f"{self.class_name} - Could not extract tick number from: {tick[:100]}..."
+                            )
+                except StopIteration:
+                    if self.loop_mode:
+                        self.ticks = self._ticks_chopper()
+                        logging.info(
+                            f"{self.class_name} - {msg.STREAM_LOOP_MODE}"
+                        )
+                    else:
+                        logging.warning(
+                            f"{self.class_name} - {msg.STREAM_ENDED}"
+                        )
+                        tick_batch.append(json.dumps({"tick": "EOF"}))
+                        break
+            burst_data = {
+                "type": "tick_burst",
+                "ticks": tick_batch,
+                "count": ticks_sent,
+            }
+            await client.write_message(json.dumps(burst_data))
+            client.last_tick_sent = last_tick_number
+            logging.info(
+                f"{self.class_name} - Sent {ticks_sent} ticks in burst to client (last tick: {last_tick_number})"
+            )
+        except Exception as e:
+            logging.error(f"{self.class_name} - Error sending tick burst: {e}")
+            self.connected_clients.discard(client)
 
     def _ticks_chopper(self) -> ijson.items:
         """Chops ticks from JSON data.
 
-        This function uses Ijson (Iterative JSON parse) library for reading
+        This function uses Iterative JSON library for reading
         a large JSON files directly from hard-drive, without first loading
         it to main memory.
         """
@@ -222,19 +306,23 @@ class DemodataServer:
         srv_endpoint: str,
         loop_mode: bool = False,
         play_nth: int = 1,
+        burst_mode: bool = True,
+        burst_size: int = 640,
     ) -> None:
-        """Starts the demodata server."""
+        """Starts the demo data server."""
         # Init values from arguments
         self.srv_address = srv_address
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
         self.loop_mode = loop_mode
         self.play_nth = play_nth
-        # Read demodata config file
+        self.burst_mode = burst_mode
+        self.burst_size = burst_size
+        # Read demo data config file
         self._read_config()
         # Init rest of variables
         self._init_values()
-        # Start server
+        # Init the demo data server
         app = Application(
             [(self.srv_endpoint, DemoDataWSH, dict(server=self))]
         )
