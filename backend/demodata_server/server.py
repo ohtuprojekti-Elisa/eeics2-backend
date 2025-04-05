@@ -44,18 +44,13 @@ class DemodataServer:
         self.tickrate: int = 64
         self.total_ticks: int = 0
         self.map_name: str = ""
-        # Ticks related
+        # Ticks
         self.ticks_filename: Path = Path()
         self.ticks = self._ticks_chopper()
         self.tick_fetch_interval: float = 0.0
         self.tick_fetch_loop: PeriodicCallback = PeriodicCallback(
             lambda: None, 1000
         )
-        # Server speed control
-        self.play_nth: int = 0
-        self.play_threshold: int = 0
-        self.skip_counter: int = 0
-        self.stream_interval: float = 0.0
         # Burst mode
         self.burst_size = 640  # Number of packed ticks
         self.burst_mode = True
@@ -150,16 +145,7 @@ class DemodataServer:
 
     def _init_values(self) -> None:
         """Calculate required values before streaming can be started."""
-        self.play_nth = self._normalize_nth(self.play_nth)
         self.tick_fetch_interval = self._calc_fetch_interval(self.tickrate)
-        self.stream_interval = self._calc_stream_interval(
-            self.tickrate, self.play_nth
-        )
-        self.play_threshold = self._calc_play_threshold(self.play_nth)
-
-    def _normalize_nth(self, play_nth: int) -> int:
-        """Takes play_nth and ensures that it is at least 1."""
-        return max(1, play_nth)
 
     def _calc_fetch_interval(self, tickrate: int) -> float:
         """Takes tickrate and converts it to fetch_interval (ms), used in fetching ticks."""
@@ -167,35 +153,19 @@ class DemodataServer:
         fetch_interval: float = 1000 / tickrate
         return fetch_interval
 
-    def _calc_stream_interval(self, tickrate: int, play_nth: int) -> float:
-        """Takes tickrate and play_nth as divider and converts them to stream_interval (ms), used in client side."""
-        play_nth = self._normalize_nth(play_nth)
-        stream_interval: float = 1000 / (tickrate / play_nth)
-        return stream_interval
-
-    def _calc_play_threshold(self, play_nth: int) -> int:
-        """Takes play_nth and creates a threshold value from it, used in skipping ticks."""
-        return max(1, play_nth - 1)
-
     def _fetch_tick(self) -> None:
         """Fetches the next tick from the "tick_data" and sends it for streaming."""
         try:
             if self.ticks:
                 tick = next(self.ticks)
+                IOLoop.current().add_callback(self._stream_tick, tick)
             else:
                 logging.warning(
                     f"{self.class_name} - {msg.STREAM_TICK_NOT_INIT}"
                 )
                 self.tick_fetch_loop.stop()
-                return
-            if self.play_nth == 1 or (
-                self.skip_counter == self.play_threshold
-            ):
-                IOLoop.current().add_callback(self._stream_tick, tick)
-                self.skip_counter = 0
-            else:
-                self.skip_counter += 1
         except StopIteration:
+            # If on "loop mode", on a last tick, restart the file
             if self.loop_mode:
                 self.ticks = self._ticks_chopper()
                 logging.info(f"{self.class_name} - {msg.STREAM_LOOP_MODE}")
@@ -305,7 +275,6 @@ class DemodataServer:
         srv_port: int,
         srv_endpoint: str,
         loop_mode: bool = False,
-        play_nth: int = 1,
         burst_mode: bool = True,
         burst_size: int = 640,
     ) -> None:
@@ -315,7 +284,6 @@ class DemodataServer:
         self.srv_port = srv_port
         self.srv_endpoint = srv_endpoint
         self.loop_mode = loop_mode
-        self.play_nth = play_nth
         self.burst_mode = burst_mode
         self.burst_size = burst_size
         # Read demo data config file
