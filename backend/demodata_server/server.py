@@ -52,45 +52,36 @@ class DemodataServer:
             lambda: None, 1000
         )
         # Burst mode
-        self.burst_size = 640  # Number of packed ticks
-        self.burst_mode = True
+        self.burst_size = 640  # Number of ticks/burst
+        self.burst_mode = False
 
-    def open(self, handler: DemoDataWSH) -> int:
+    def open(self, client: DemoDataWSH) -> int:
         """Handles new connections, sends messages to client and starts the stream."""
-        self.connected_clients.add(handler)
+        self.connected_clients.add(client)
         logging.info(
-            f"{self.class_name} - {msg.CLIENT_NEW_CONNECTION}: {handler.request.remote_ip}"
+            f"{self.class_name} - {msg.CLIENT_NEW_CONNECTION}: {client.request.remote_ip}"
         )
         logging.info(f"{self.class_name} - {self.total_clients()}")
-        handler.write_message(f"{self.class_name} - {msg.CLIENT_WELCOME}")
-        if self.burst_mode:
-            IOLoop.current().add_callback(self.send_tick_burst, handler)
-        else:
-            handler.write_message(
-                f"{self.class_name} - {msg.CLIENT_START_STREAM}"
-            )
-            self._stream_start()
+        client.write_message(f"{self.class_name} - {msg.CLIENT_WELCOME}")
+        self._stream_start(client)
         return len(self.connected_clients)
 
-    def on_close(self, handler: DemoDataWSH) -> int:
+    def on_close(self, client: DemoDataWSH) -> int:
         """Handles closed connections."""
-        self.connected_clients.discard(handler)
+        self.connected_clients.discard(client)
         logging.info(
-            f"{self.class_name} - {msg.CLIENT_CLOSED_CONNECTION}: {handler.request.remote_ip}"
+            f"{self.class_name} - {msg.CLIENT_CLOSED_CONNECTION}: {client.request.remote_ip}"
         )
         logging.info(f"{self.class_name} - {self.total_clients()}")
         self._stream_pause()
         return len(self.connected_clients)
 
-    async def on_message(self, handler: DemoDataWSH, message: str) -> None:
+    async def on_message(self, message: str) -> None:
         """Handles messages from clients."""
         try:
             data = json.loads(message)
-            if data.get("request") == "more_ticks":
-                logging.info(
-                    f"{self.class_name} - Client requested more ticks"
-                )
-                await self.send_tick_burst(handler)
+            if data.get("tick_status") <= 200:
+                logging.info(f"{self.class_name} - Client needs more ticks")
         except json.JSONDecodeError:
             logging.warning(
                 f"{self.class_name} - Invalid JSON received from client: {message}"
@@ -107,13 +98,19 @@ class DemodataServer:
         """Formats server info to a single string."""
         return f"{self.class_name} - {self.srv_address}:{self.srv_port}/{self.srv_endpoint}"
 
-    def _stream_start(self) -> bool:
-        """Streams ticks to EEICT clients using the calculated interval (ms)."""
-        if len(self.connected_clients) == 1:
-            self.tick_fetch_loop = PeriodicCallback(
-                self._fetch_tick, self.tick_fetch_interval
+    def _stream_start(self, client: DemoDataWSH) -> bool:
+        """Starts the stream for a client."""
+        if self.burst_mode:
+            IOLoop.current().add_callback(self._burst_ticks, client)
+        else:
+            client.write_message(
+                f"{self.class_name} - {msg.CLIENT_START_STREAM}"
             )
-            self.tick_fetch_loop.start()
+            if len(self.connected_clients) == 1:
+                self.tick_fetch_loop = PeriodicCallback(
+                    self._fetch_tick, self.tick_fetch_interval
+                )
+                self.tick_fetch_loop.start()
         return self.tick_fetch_loop.is_running()
 
     def _stream_pause(self) -> bool:
@@ -124,7 +121,7 @@ class DemodataServer:
                 logging.info(f"{self.class_name} - {msg.STREAM_PAUSED}")
         return self.tick_fetch_loop.is_running()
 
-    def _create_config_filename(self) -> Path:
+    def _parse_config_filename(self) -> Path:
         """Creates $_config.json path from $.json path."""
         config_filename = self.ticks_filename.with_name(
             f"{self.ticks_filename.stem}_config.json"
@@ -133,7 +130,7 @@ class DemodataServer:
 
     def _read_config(self) -> None:
         """Reads values from $_config.json and assigns them to variables."""
-        config_filename = self._create_config_filename()
+        config_filename = self._parse_config_filename()
         try:
             with open(Path(config_filename)) as f:
                 config = json.load(f)
@@ -158,44 +155,22 @@ class DemodataServer:
         try:
             if self.ticks:
                 tick = next(self.ticks)
-                IOLoop.current().add_callback(self._stream_tick, tick)
+                IOLoop.current().add_callback(self._transmit_tick, tick)
             else:
                 logging.warning(
                     f"{self.class_name} - {msg.STREAM_TICK_NOT_INIT}"
                 )
                 self.tick_fetch_loop.stop()
         except StopIteration:
-            # If on "loop mode", on a last tick, restart the file
-            if self.loop_mode:
-                self.ticks = self._ticks_chopper()
-                logging.info(f"{self.class_name} - {msg.STREAM_LOOP_MODE}")
-            else:
-                IOLoop.current().add_callback(self._stream_tick, "EOF")
-                self.tick_fetch_loop.stop()
-                logging.warning(f"{self.class_name} - {msg.STREAM_ENDED}")
+            self._end_of_file()
 
-    async def _stream_tick(self, tick: str) -> None:
-        """Stream a single tick to all connected clients."""
-        if self.connected_clients:
-            for client in list(self.connected_clients):
-                try:
-                    await client.write_message(tick)
-                    # Update the last tick number sent for this client
-                    try:
-                        tick_data = json.loads(tick)
-                        # Check for different possible key names for tick number
-                        if "tick_number" in tick_data:
-                            client.last_tick_sent = tick_data["tick_number"]
-                        elif "tick" in tick_data:
-                            client.last_tick_sent = tick_data["tick"]
-                    except (json.JSONDecodeError, KeyError, TypeError):
-                        logging.debug(
-                            f"{self.class_name} - Could not extract tick number from: {tick[:100]}..."
-                        )
-                except Exception:
-                    self.connected_clients.discard(client)
+    def _end_of_file(self) -> None:
+        """Handles the end of the tick data file."""
+        IOLoop.current().add_callback(self._transmit_tick, "EOF")
+        self.tick_fetch_loop.stop()
+        logging.warning(f"{self.class_name} - {msg.STREAM_ENDED}")
 
-    async def send_tick_burst(self, client):
+    def _burst_ticks(self, client) -> None:
         """Send a burst of ticks to a specific client."""
         logging.info(
             f"{self.class_name} - Sending tick burst of {self.burst_size} ticks"
@@ -206,38 +181,20 @@ class DemodataServer:
         try:
             for _ in range(self.burst_size):
                 try:
-                    if self.ticks:
-                        tick = next(self.ticks)
-                        tick_batch.append(tick)
-                        ticks_sent += 1
-                        try:
-                            tick_data = json.loads(tick)
-                            if "tick_number" in tick_data:
-                                last_tick_number = tick_data["tick_number"]
-                            elif "tick" in tick_data:
-                                last_tick_number = tick_data["tick"]
-                        except (json.JSONDecodeError, KeyError, TypeError):
-                            logging.debug(
-                                f"{self.class_name} - Could not extract tick number from: {tick[:100]}..."
-                            )
+                    tick = next(self.ticks)
+                    tick_batch.append(tick)
+                    ticks_sent += 1
                 except StopIteration:
-                    if self.loop_mode:
-                        self.ticks = self._ticks_chopper()
-                        logging.info(
-                            f"{self.class_name} - {msg.STREAM_LOOP_MODE}"
-                        )
-                    else:
-                        logging.warning(
-                            f"{self.class_name} - {msg.STREAM_ENDED}"
-                        )
-                        tick_batch.append(json.dumps({"tick": "EOF"}))
-                        break
+                    self._end_of_file()
+                    break
             burst_data = {
                 "type": "tick_burst",
                 "ticks": tick_batch,
                 "count": ticks_sent,
             }
-            await client.write_message(json.dumps(burst_data))
+            IOLoop.current().add_callback(
+                self._transmit_tick, json.dumps(burst_data)
+            )
             client.last_tick_sent = last_tick_number
             logging.info(
                 f"{self.class_name} - Sent {ticks_sent} ticks in burst to client (last tick: {last_tick_number})"
@@ -246,20 +203,33 @@ class DemodataServer:
             logging.error(f"{self.class_name} - Error sending tick burst: {e}")
             self.connected_clients.discard(client)
 
+    async def _transmit_tick(self, tick: str) -> None:
+        """Transmit a tick to client."""
+        if self.connected_clients:
+            for client in list(self.connected_clients):
+                try:
+                    await client.write_message(tick)
+                except Exception:
+                    self.connected_clients.discard(client)
+
     def _ticks_chopper(self) -> ijson.items:
         """Chops ticks from JSON data.
 
         This function uses Iterative JSON library for reading
         a large JSON files directly from hard-drive, without first loading
-        it to main memory.
+        it to main memory. Handles loop mode if enabled.
         """
-        with open(self.ticks_filename, "r") as file:
-            for tick in ijson.items(
-                file,
-                "ticks.item",
-                use_float=True,
-            ):
-                yield json.dumps(tick)
+        while True:
+            with open(self.ticks_filename, "r") as file:
+                for tick in ijson.items(
+                    file,
+                    "ticks.item",
+                    use_float=True,
+                ):
+                    yield json.dumps(tick)
+            if not self.loop_mode:
+                break
+            logging.info(f"{self.class_name} - {msg.STREAM_LOOP_MODE}")
 
     def ticks_file(self, ticks_filename: Path) -> Path:
         """Handles the input file for $.json (ticks)."""

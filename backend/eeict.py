@@ -95,7 +95,6 @@ def server_process(
         settings_file["srv_port"],
         settings_file["srv_endpoint"],
         loop_mode,
-        play_nth,
     )
 
 
