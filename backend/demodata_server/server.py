@@ -169,7 +169,6 @@ class DemodataServer:
     def _update_buffer(self) -> None:
         """Update buffers and send data to clients based on the threshold counter."""
         try:
-            print(self.threshold_counter)
             # Send the first burst of ticks
             if not self.ticks_buffer:
                 self.ticks_buffer = self._gather_ticks(self.burst_size)
