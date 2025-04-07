@@ -110,6 +110,12 @@ func ParseDemo(filename *C.char) C.bool {
 		})
 	})
 
+	var nadeDestroyEvents []int64
+	parser.RegisterEventHandler(func(e events.GrenadeProjectileDestroy) {
+		nadeDestroyEvents = append(nadeDestroyEvents, e.Projectile.UniqueID())
+
+	})
+
 	// Kill events
 	var kills []Kill
 	parser.RegisterEventHandler(func(e events.Kill) {
@@ -263,22 +269,23 @@ func ParseDemo(filename *C.char) C.bool {
 
 		// Tick
 		tick := Tick{
-			Tick:          parser.CurrentFrame(),
-			RoundStarted:  roundStarted,
-			TeamT:         parser.GameState().TeamTerrorists().ClanName(),
-			TeamCT:        parser.GameState().TeamCounterTerrorists().ClanName(),
-			TWins:         parser.GameState().TeamTerrorists().Score(),
-			CTWins:        parser.GameState().TeamCounterTerrorists().Score(),
-			Players:       players,
-			Bomb:          bombStruct,
-			FireEvents:    fireEvents,
-			Kills:         kills,
-			Nades:         nades,
-			HeEvents:      heEvents,
-			FlashEvents:   flashEvents,
-			SmokeEvents:   smokeEvents,
-			InfernoEvents: inferEvents,
-			DecoyEvents:   decoyEvents,
+			Tick:              parser.CurrentFrame(),
+			RoundStarted:      roundStarted,
+			TeamT:             parser.GameState().TeamTerrorists().ClanName(),
+			TeamCT:            parser.GameState().TeamCounterTerrorists().ClanName(),
+			TWins:             parser.GameState().TeamTerrorists().Score(),
+			CTWins:            parser.GameState().TeamCounterTerrorists().Score(),
+			Players:           players,
+			Bomb:              bombStruct,
+			FireEvents:        fireEvents,
+			Kills:             kills,
+			Nades:             nades,
+			HeEvents:          heEvents,
+			FlashEvents:       flashEvents,
+			SmokeEvents:       smokeEvents,
+			InfernoEvents:     inferEvents,
+			DecoyEvents:       decoyEvents,
+			NadeDestroyEvents: nadeDestroyEvents,
 		}
 
 		// JSON: Write the tick
@@ -297,6 +304,7 @@ func ParseDemo(filename *C.char) C.bool {
 		smokeEvents = nil
 		inferEvents = nil
 		decoyEvents = nil
+		nadeDestroyEvents = nil
 		bombExploded = false
 		footStepID = 0
 		firstTick = false

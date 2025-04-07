@@ -124,20 +124,21 @@ type DecoyEvent struct {
 }
 
 type Tick struct {
-	Tick          int            `json:"tick"`
-	RoundStarted  bool           `json:"round_start"`
-	TeamT         string         `json:"t"`
-	TeamCT        string         `json:"ct"`
-	TWins         int            `json:"t_wins"`
-	CTWins        int            `json:"ct_wins"`
-	Players       []Player       `json:"players"`
-	Bomb          Bomb           `json:"bomb"`
-	Kills         []Kill         `json:"kills"`
-	Nades         []Nade         `json:"nades"`
-	FireEvents    []uint64       `json:"shooting"`
-	HeEvents      []HeEvent      `json:"he_events"`
-	FlashEvents   []FlashEvent   `json:"flash_events"`
-	SmokeEvents   []SmokeEvent   `json:"smoke_events"`
-	InfernoEvents []InfernoEvent `json:"infer_events"`
-	DecoyEvents   []DecoyEvent   `json:"decoy_events"`
+	Tick              int            `json:"tick"`
+	RoundStarted      bool           `json:"round_start"`
+	TeamT             string         `json:"t"`
+	TeamCT            string         `json:"ct"`
+	TWins             int            `json:"t_wins"`
+	CTWins            int            `json:"ct_wins"`
+	Players           []Player       `json:"players"`
+	Bomb              Bomb           `json:"bomb"`
+	Kills             []Kill         `json:"kills"`
+	Nades             []Nade         `json:"nades"`
+	FireEvents        []uint64       `json:"shooting"`
+	HeEvents          []HeEvent      `json:"he_events"`
+	FlashEvents       []FlashEvent   `json:"flash_events"`
+	SmokeEvents       []SmokeEvent   `json:"smoke_events"`
+	InfernoEvents     []InfernoEvent `json:"infer_events"`
+	DecoyEvents       []DecoyEvent   `json:"decoy_events"`
+	NadeDestroyEvents []int64        `json:"nade_destroy"`
 }
