@@ -34,21 +34,21 @@ class DemodataServer:
     def __init__(self):
         # Server related
         self.srv_address: str = ""
-        self.srv_port: int = 0
+        self.srv_port: int = -1
         self.srv_endpoint: str = ""
         self.loop_mode: bool = False
         self.connected_clients: set[DemoDataWSH] = set()
         # Demodata info
         self.tickrate: int = 64
-        self.total_ticks: int = 0
+        self.total_ticks: int = -1
         self.map_name: str = ""
         # Ticks
         self.ticks_filename: Path = Path()
         self.ticks: ijson.items = ijson.items
         self.interval_ms: float = 15.625
         # Burst mode
-        self.burst_size = 640  # Number of ticks/burst
-        self.burst_threshold = 320  # Controls when to swap buffers
+        self.burst_size: int = -1  # Number of ticks/burst
+        self.burst_threshold: int = -1  # Controls when to swap buffers
         self.threshold_counter: int = 0  # Threshold playhead
         self.ticks_buffer: list = []
         self.timer_callback = PeriodicCallback(
@@ -153,13 +153,13 @@ class DemodataServer:
     def _init_values(self) -> None:
         """Init required variables before streaming can be started."""
         self.ticks = self._ticks_chopper()
-        self.interval_ms = self._calc_fetch_interval(self.tickrate)
+        self.interval_ms = self._calc_interval_ms(self.tickrate)
 
-    def _calc_fetch_interval(self, tickrate: int) -> float:
-        """Takes tickrate and converts it to fetch_interval (ms), used in fetching ticks."""
+    def _calc_interval_ms(self, tickrate: int) -> float:
+        """Takes tickrate and converts it to interval (ms), used as a internal clock."""
         tickrate = self._sanitize_tickrate(tickrate)
-        fetch_interval: float = 1000 / tickrate
-        return fetch_interval
+        interval_ms: float = 1000 / tickrate
+        return interval_ms
 
     def _end_of_file(self) -> None:
         """Handles the end of the tick data file."""
@@ -169,11 +169,12 @@ class DemodataServer:
     def _update_buffer(self) -> None:
         """Update buffers and send data to clients based on the threshold counter."""
         try:
+            print(self.threshold_counter)
             # Send the first burst of ticks
             if not self.ticks_buffer:
                 self.ticks_buffer = self._gather_ticks(self.burst_size)
                 self._send_burst_data(self.ticks_buffer)
-            # Send next burst of ticks by using threshold
+            # Send concurrent burst of ticks by utilizing threshold
             if self.threshold_counter >= self.burst_threshold:
                 self._log(f"{msg.STREAM_THRESHOLD}: {self.burst_threshold}")
                 self.ticks_buffer = self._gather_ticks(self.burst_size)
@@ -248,8 +249,8 @@ class DemodataServer:
         srv_port: int,
         srv_endpoint: str,
         loop_mode: bool = False,
-        burst_size: int = 640,
-        burst_threshold: int = 320,
+        burst_size: int = 16,
+        burst_threshold: int = 16,
     ) -> None:
         """Starts the demo data server."""
         # Init values from arguments
