@@ -196,24 +196,27 @@ class DemodataServer:
 
     def _send_burst_data(self, ticks_buffer: list) -> None:
         """Send a batch of ticks to all connected clients."""
-        burst_data = {
-            "ticks": ticks_buffer,
-            "count": len(ticks_buffer),
-        }
+        # Simply send the ticks directly without wrapping them in a "ticks" object
+        if not ticks_buffer:
+            return
+
         for client in list(self.connected_clients):
-            IOLoop.current().add_callback(
-                self._transmit_ticks, client, burst_data
-            )
-        self._log(f"{msg.STREAM_SENT_TICKS}: {self.burst_size}")
+            for tick in ticks_buffer:
+                IOLoop.current().add_callback(
+                    self._transmit_ticks, client, tick
+                )
+        self._log(f"{msg.STREAM_SENT_TICKS}: {len(ticks_buffer)}")
 
     async def _transmit_ticks(self, client, tick: dict) -> None:
         """Transmit ticks to client."""
         if self.connected_clients:
-            for client in list(self.connected_clients):
-                try:
-                    await client.write_message(tick)
-                except Exception:
-                    self.connected_clients.discard(client)
+            try:
+                await client.write_message(
+                    json.dumps(tick) if isinstance(tick, dict) else tick
+                )
+            except Exception as e:
+                self._log(f"Error transmitting tick: {e}", level="error")
+                self.connected_clients.discard(client)
 
     def _ticks_chopper(self) -> ijson.items:
         """Chops ticks from JSON data.
