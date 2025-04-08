@@ -55,6 +55,22 @@ type Nade struct {
 	Team string  `json:"team"`
 }
 
+type Inferno struct {
+	ID   int64   `json:"id"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Z    float64 `json:"z"`
+	Team string  `json:"team"`
+}
+
+type InfernoEvent struct {
+	ID int64   `json:"id"`
+	X  float64 `json:"x"`
+	Y  float64 `json:"y"`
+	Z  float64 `json:"z"`
+	// Team string  `json:"team"`
+}
+
 type Bomb struct {
 	Carrier     string      `json:"carrier"`
 	X           float64     `json:"x"`
@@ -89,56 +105,26 @@ type DemoInfo struct {
 	MapName    string  `json:"map_name"`
 }
 
-type HeEvent struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
-}
-
-type FlashEvent struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
-}
-
-type FireEvent struct {
-	ShooterID uint64 `json:"sid"`
-}
-
-type SmokeEvent struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
-}
-
-type InfernoEvent struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
-}
-
-type DecoyEvent struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
+type NadeEvent struct {
+	Type string  `json:"type"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Z    float64 `json:"z"`
 }
 
 type Tick struct {
-	Tick              int            `json:"tick"`
-	RoundStarted      bool           `json:"round_start"`
-	TeamT             string         `json:"t"`
-	TeamCT            string         `json:"ct"`
-	TWins             int            `json:"t_wins"`
-	CTWins            int            `json:"ct_wins"`
-	Players           []Player       `json:"players"`
-	Bomb              Bomb           `json:"bomb"`
-	Kills             []Kill         `json:"kills"`
-	Nades             []Nade         `json:"nades"`
-	FireEvents        []uint64       `json:"shooting"`
-	HeEvents          []HeEvent      `json:"he_events"`
-	FlashEvents       []FlashEvent   `json:"flash_events"`
-	SmokeEvents       []SmokeEvent   `json:"smoke_events"`
-	InfernoEvents     []InfernoEvent `json:"infer_events"`
-	DecoyEvents       []DecoyEvent   `json:"decoy_events"`
-	NadeDestroyEvents []int64        `json:"nade_destroy"`
+	Tick           int            `json:"tick"`
+	RoundStarted   bool           `json:"round_start"`
+	TeamT          string         `json:"t"`
+	TeamCT         string         `json:"ct"`
+	TWins          int            `json:"t_wins"`
+	CTWins         int            `json:"ct_wins"`
+	Players        []Player       `json:"players"`
+	Bomb           Bomb           `json:"bomb"`
+	Kills          []Kill         `json:"kills"`
+	Nades          []Nade         `json:"nades"`
+	ShootingEvents []uint64       `json:"shooting"`
+	NadeEvent      NadeEvent      `json:"nade_event"`
+	InfernoEvent   []InfernoEvent `json:"inf_event"`
+	// NadeDestroyEvents []int64        `json:"nade_destroy"`
 }

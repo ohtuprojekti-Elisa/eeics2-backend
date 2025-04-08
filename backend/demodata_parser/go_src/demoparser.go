@@ -58,62 +58,35 @@ func ParseDemo(filename *C.char) C.bool {
 		}
 	})
 
-	// HE Grenades
-	var heEvents []HeEvent
-	parser.RegisterEventHandler(func(e events.HeExplode) {
-		heEvents = append(heEvents, HeEvent{
-			X: e.Position.X,
-			Y: e.Position.Y,
-			Z: e.Position.Z,
-		})
-	})
-
-	// Flashbangs
-	var flashEvents []FlashEvent
-	parser.RegisterEventHandler(func(e events.FlashExplode) {
-		flashEvents = append(flashEvents, FlashEvent{
-			X: e.Position.X,
-			Y: e.Position.Y,
-			Z: e.Position.Z,
-		})
-	})
-
-	// Smokes
-	var smokeEvents []SmokeEvent
-	parser.RegisterEventHandler(func(e events.SmokeStart) {
-		smokeEvents = append(smokeEvents, SmokeEvent{
-			X: e.Position.X,
-			Y: e.Position.Y,
-			Z: e.Position.Z,
-		})
-	})
-
-	// Infernos
-	var inferEvents []InfernoEvent
-	parser.RegisterEventHandler(func(e events.InfernoStart) {
-		for _, inferno := range e.Inferno.Fires().Active().List() {
-			inferEvents = append(inferEvents, InfernoEvent{
-				X: inferno.X,
-				Y: inferno.Y,
-				Z: inferno.Z,
-			})
+	//Nade events
+	var nadeEvent NadeEvent
+	parser.RegisterEventHandler(func(e events.GrenadeEventIf) {
+		if e.Base().GrenadeType.String() != "Incendiary Grenade" {
+			nadeEvent = NadeEvent{
+				Type: e.Base().GrenadeType.String(),
+				X:    e.Base().Position.X,
+				Y:    e.Base().Position.Y,
+				Z:    e.Base().Position.Z,
+			}
 		}
 	})
 
-	// Decoys
-	var decoyEvents []DecoyEvent
-	parser.RegisterEventHandler(func(e events.DecoyStart) {
-		decoyEvents = append(decoyEvents, DecoyEvent{
-			X: e.Position.X,
-			Y: e.Position.Y,
-			Z: e.Position.Z,
-		})
+	// Infernos
+	var infernoEvents []InfernoEvent
+	parser.RegisterEventHandler(func(e events.InfernoStart) {
+		for _, inferno := range e.Inferno.Fires().Active().List() {
+			infernoEvents = append(infernoEvents, InfernoEvent{
+				ID: e.Inferno.UniqueID(),
+				X:  inferno.X,
+				Y:  inferno.Y,
+				Z:  inferno.Z,
+			})
+		}
 	})
 
 	var nadeDestroyEvents []int64
 	parser.RegisterEventHandler(func(e events.GrenadeProjectileDestroy) {
 		nadeDestroyEvents = append(nadeDestroyEvents, e.Projectile.UniqueID())
-
 	})
 
 	// Kill events
@@ -255,6 +228,12 @@ func ParseDemo(filename *C.char) C.bool {
 			})
 		}
 
+		// var infernos []Inferno
+		// for _, inferno := range parser.GameState().Infernos() {
+		// 	inferno.Fires().Active().List()
+
+		// }
+
 		// Bomb
 		bomb := parser.GameState().Bomb()
 		bombStruct := Bomb{
@@ -269,23 +248,20 @@ func ParseDemo(filename *C.char) C.bool {
 
 		// Tick
 		tick := Tick{
-			Tick:              parser.CurrentFrame(),
-			RoundStarted:      roundStarted,
-			TeamT:             parser.GameState().TeamTerrorists().ClanName(),
-			TeamCT:            parser.GameState().TeamCounterTerrorists().ClanName(),
-			TWins:             parser.GameState().TeamTerrorists().Score(),
-			CTWins:            parser.GameState().TeamCounterTerrorists().Score(),
-			Players:           players,
-			Bomb:              bombStruct,
-			FireEvents:        fireEvents,
-			Kills:             kills,
-			Nades:             nades,
-			HeEvents:          heEvents,
-			FlashEvents:       flashEvents,
-			SmokeEvents:       smokeEvents,
-			InfernoEvents:     inferEvents,
-			DecoyEvents:       decoyEvents,
-			NadeDestroyEvents: nadeDestroyEvents,
+			Tick:           parser.CurrentFrame(),
+			RoundStarted:   roundStarted,
+			TeamT:          parser.GameState().TeamTerrorists().ClanName(),
+			TeamCT:         parser.GameState().TeamCounterTerrorists().ClanName(),
+			TWins:          parser.GameState().TeamTerrorists().Score(),
+			CTWins:         parser.GameState().TeamCounterTerrorists().Score(),
+			Players:        players,
+			Bomb:           bombStruct,
+			ShootingEvents: fireEvents,
+			Kills:          kills,
+			Nades:          nades,
+			NadeEvent:      nadeEvent,
+			InfernoEvent:   infernoEvents,
+			// NadeDestroyEvents: nadeDestroyEvents,
 		}
 
 		// JSON: Write the tick
@@ -299,12 +275,8 @@ func ParseDemo(filename *C.char) C.bool {
 		roundStarted = false
 		kills = nil
 		fireEvents = nil
-		heEvents = nil
-		flashEvents = nil
-		smokeEvents = nil
-		inferEvents = nil
-		decoyEvents = nil
-		nadeDestroyEvents = nil
+		nadeEvent = NadeEvent{}
+		infernoEvents = nil
 		bombExploded = false
 		footStepID = 0
 		firstTick = false
