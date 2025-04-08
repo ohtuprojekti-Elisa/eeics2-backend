@@ -45,11 +45,10 @@ class DemodataServer:
         # Ticks
         self.ticks_filename: Path = Path()
         self.ticks: ijson.items = ijson.items
-        self.interval_ms: float = 15.625
+        self.interval_ms: float = 15.625  # Server master clock
+        self.current_tick: int = 0  # Server playhead
         # Burst mode
         self.burst_size: int = -1  # Number of ticks/burst
-        self.burst_threshold: int = -1  # Controls when to swap buffers
-        self.threshold_counter: int = 0  # Threshold playhead
         self.ticks_buffer: list = []
         self.timer_callback = PeriodicCallback(
             self._update_buffer, self.interval_ms
@@ -173,13 +172,12 @@ class DemodataServer:
             if not self.ticks_buffer:
                 self.ticks_buffer = self._gather_ticks(self.burst_size)
                 self._send_burst_data(self.ticks_buffer)
-            # Send concurrent burst of ticks by utilizing threshold
-            if self.threshold_counter >= self.burst_threshold:
-                self._log(f"{msg.STREAM_THRESHOLD}: {self.burst_threshold}")
+            # Send concurrent bursts of ticks
+            if self.current_tick >= self.burst_size:
                 self.ticks_buffer = self._gather_ticks(self.burst_size)
                 self._send_burst_data(self.ticks_buffer)
-                self.threshold_counter = 0
-            self.threshold_counter += 1
+                self.current_tick = 0
+            self.current_tick += 1
         except Exception as e:
             self._log(f"Error in buffer update: {e}", level="error")
 
@@ -249,7 +247,6 @@ class DemodataServer:
         srv_endpoint: str,
         loop_mode: bool = False,
         burst_size: int = 16,
-        burst_threshold: int = 16,
     ) -> None:
         """Starts the demo data server."""
         # Init values from arguments
@@ -258,7 +255,6 @@ class DemodataServer:
         self.srv_endpoint = srv_endpoint
         self.loop_mode = loop_mode
         self.burst_size = burst_size
-        self.burst_threshold = burst_threshold
         # Read demo data config file
         self._read_config()
         # Init rest of variables
