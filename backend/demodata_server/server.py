@@ -76,9 +76,9 @@ class DemodataServer:
         self.connected_clients.add(client)
         self._log(f"{msg.CLIENT_NEW_CONNECTION}: {client.request.remote_ip}")
         self._log(f"{self.total_clients()}")
-        client.write_message(f"{msg.CLIENT_WELCOME}")
+        # client.write_message(f"{msg.CLIENT_WELCOME}")
         self._stream_start()
-        client.write_message(f"{msg.CLIENT_START_STREAM}")
+        # client.write_message(f"{msg.CLIENT_START_STREAM}")
         return len(self.connected_clients)
 
     def on_close(self, client: DemoDataWSH) -> int:
@@ -153,7 +153,7 @@ class DemodataServer:
         """Init required variables before streaming can be started."""
         self.ticks = self._ticks_chopper()
         # self.interval_ms = self._calc_interval_ms(self.tickrate) # DISABLED FOR DEBUG
-        self.interval_ms = 15  # DEBUG VALUE
+        self.interval_ms = 15.2  # DEBUG VALUE
 
     def _calc_interval_ms(self, tickrate: int) -> float:
         """Takes tickrate and converts it to interval (ms), used as a internal clock."""
@@ -197,16 +197,14 @@ class DemodataServer:
 
     def _send_burst_data(self, ticks_buffer: list) -> None:
         """Send a batch of ticks to all connected clients."""
-        # Simply send the ticks directly without wrapping them in a "ticks" object
         if not ticks_buffer:
             return
-
         for client in list(self.connected_clients):
             for tick in ticks_buffer:
                 IOLoop.current().add_callback(
                     self._transmit_ticks, client, tick
                 )
-        self._log(f"{msg.STREAM_SENT_TICKS}: {len(ticks_buffer)}")
+        # self._log(f"{msg.STREAM_SENT_TICKS}: {len(ticks_buffer)}")
 
     async def _transmit_ticks(self, client, tick: dict) -> None:
         """Transmit ticks to client."""
