@@ -79,3 +79,6 @@ __pycache__
 # Go build specific
 demoparser.h
 *.so
+
+# Temp
+[Tt]emp
