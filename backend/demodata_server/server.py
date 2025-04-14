@@ -153,7 +153,7 @@ class DemodataServer:
         """Init required variables before streaming can be started."""
         self.ticks = self._ticks_chopper()
         # self.interval_ms = self._calc_interval_ms(self.tickrate) # DISABLED FOR DEBUG
-        self.interval_ms = 15.2  # DEBUG VALUE
+        self.interval_ms = 8  # DEBUG VALUE
 
     def _calc_interval_ms(self, tickrate: int) -> float:
         """Takes tickrate and converts it to interval (ms), used as a internal clock."""
