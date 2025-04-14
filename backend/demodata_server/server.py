@@ -152,8 +152,8 @@ class DemodataServer:
     def _init_values(self) -> None:
         """Init required variables before streaming can be started."""
         self.ticks = self._ticks_chopper()
-        # self.interval_ms = self._calc_interval_ms(self.tickrate) # DISABLED FOR DEBUG
-        self.interval_ms = 8  # DEBUG VALUE
+        self.interval_ms = self._calc_interval_ms(self.tickrate)
+        # self.interval_ms = 8  # DEBUG VALUE
 
     def _calc_interval_ms(self, tickrate: int) -> float:
         """Takes tickrate and converts it to interval (ms), used as a internal clock."""
@@ -163,7 +163,8 @@ class DemodataServer:
 
     def _end_of_file(self) -> None:
         """Handles the end of the tick data file."""
-        IOLoop.current().add_callback(self._transmit_ticks, "EOF")
+        for client in list(self.connected_clients):
+            IOLoop.current().add_callback(self._transmit_ticks, client, "EOF")
         self._log(f"{msg.STREAM_ENDED}", level="warning")
 
     def _update_buffer(self) -> None:
