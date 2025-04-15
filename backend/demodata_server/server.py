@@ -153,7 +153,6 @@ class DemodataServer:
         """Init required variables before streaming can be started."""
         self.ticks = self._ticks_chopper()
         self.interval_ms = self._calc_interval_ms(self.tickrate)
-        # self.interval_ms = 8  # DEBUG VALUE
 
     def _calc_interval_ms(self, tickrate: int) -> float:
         """Takes tickrate and converts it to interval (ms), used as a internal clock."""
@@ -192,6 +191,8 @@ class DemodataServer:
                 ticks.append(json.loads(tick))
         except StopIteration:
             self._end_of_file()
+            # Stop the streaming loop
+            self.timer_callback.stop()
         except Exception as e:
             self._log(f"Error gathering ticks: {e}", level="error")
         return ticks
@@ -205,7 +206,6 @@ class DemodataServer:
                 IOLoop.current().add_callback(
                     self._transmit_ticks, client, tick
                 )
-        # self._log(f"{msg.STREAM_SENT_TICKS}: {len(ticks_buffer)}")
 
     async def _transmit_ticks(self, client, tick: dict) -> None:
         """Transmit ticks to client."""
