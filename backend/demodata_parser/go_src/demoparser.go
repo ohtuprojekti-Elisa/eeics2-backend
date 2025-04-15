@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	demoinfocs "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs"
 	common "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
@@ -169,11 +170,10 @@ func ParseDemo(filename *C.char) C.bool {
 	firstTick := true
 
 	// CREATE $_TICKS.JSON
+	var current_time time.Duration
+	var tick Tick
 	parser.RegisterEventHandler(func(e events.FrameDone) {
 		// JSON: write comma after every object, except before the first and after the last one
-		if !firstTick {
-			jsonFileTicks.WriteString(",\n")
-		}
 
 		// Players
 		var players []Player
@@ -246,30 +246,45 @@ func ParseDemo(filename *C.char) C.bool {
 			Exploded:    bombExploded,
 		}
 
-		// Tick
-		tick := Tick{
-			Tick:           parser.CurrentFrame(),
-			RoundStarted:   roundStarted,
-			TeamT:          parser.GameState().TeamTerrorists().ClanName(),
-			TeamCT:         parser.GameState().TeamCounterTerrorists().ClanName(),
-			TWins:          parser.GameState().TeamTerrorists().Score(),
-			CTWins:         parser.GameState().TeamCounterTerrorists().Score(),
-			Players:        players,
-			Bomb:           bombStruct,
-			ShootingEvents: fireEvents,
-			Kills:          kills,
-			Nades:          nades,
-			NadeEvent:      nadeEvent,
-			InfernoEvent:   infernoEvents,
-			// NadeDestroyEvents: nadeDestroyEvents,
-		}
+		round_time := parser.CurrentTime()
 
-		// JSON: Write the tick
-		tickJSON, err := json.Marshal(tick)
-		if err != nil {
-			log.Panic("Error encoding tick to JSON: ", err)
+		// Tick
+
+		if current_time != round_time {
+
+			if !firstTick {
+				jsonFileTicks.WriteString(",\n")
+			}
+
+			tick = Tick{
+				Tick:           parser.CurrentFrame(),
+				RoundTime:      round_time.Seconds(),
+				RoundStarted:   roundStarted,
+				TeamT:          parser.GameState().TeamTerrorists().ClanName(),
+				TeamCT:         parser.GameState().TeamCounterTerrorists().ClanName(),
+				TWins:          parser.GameState().TeamTerrorists().Score(),
+				CTWins:         parser.GameState().TeamCounterTerrorists().Score(),
+				Players:        players,
+				Bomb:           bombStruct,
+				ShootingEvents: fireEvents,
+				Kills:          kills,
+				Nades:          nades,
+				NadeEvent:      nadeEvent,
+				InfernoEvent:   infernoEvents,
+				// NadeDestroyEvents: nadeDestroyEvents,
+			}
+
+			current_time = round_time
+
+			// JSON: Write the tick
+			tickJSON, err := json.Marshal(tick)
+			if err != nil {
+				log.Panic("Error encoding tick to JSON: ", err)
+			}
+			jsonFileTicks.WriteString(string(tickJSON))
+
+			firstTick = false
 		}
-		jsonFileTicks.WriteString(string(tickJSON))
 
 		// Reset before the next tick
 		roundStarted = false
@@ -279,7 +294,6 @@ func ParseDemo(filename *C.char) C.bool {
 		infernoEvents = nil
 		bombExploded = false
 		footStepID = 0
-		firstTick = false
 	})
 
 	// Parse demo to end

@@ -114,6 +114,7 @@ type NadeEvent struct {
 
 type Tick struct {
 	Tick           int            `json:"tick"`
+	RoundTime      float64        `json:"round_time"`
 	RoundStarted   bool           `json:"round_start"`
 	TeamT          string         `json:"t"`
 	TeamCT         string         `json:"ct"`
