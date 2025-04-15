@@ -31,7 +31,7 @@ func ParseDemo(filename *C.char) C.bool {
 	// JSON: Create new files (tics & config)
 	// Ticks
 	jsonFileNameTicks := demodataFileName[:len(demodataFileName)-len(".dem")] + ".json"
-	jsonFileTicks, err := os.OpenFile(jsonFileNameTicks, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	jsonFileTicks, err := os.OpenFile(jsonFileNameTicks, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		log.Panic("failed to open/create JSON file: ", err)
 		return C.bool(false)
@@ -40,7 +40,7 @@ func ParseDemo(filename *C.char) C.bool {
 
 	// Config
 	jsonFileNameConfig := demodataFileName[:len(demodataFileName)-len(".dem")] + "_config.json"
-	jsonFileConfig, err := os.OpenFile(jsonFileNameConfig, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	jsonFileConfig, err := os.OpenFile(jsonFileNameConfig, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		log.Panic("failed to open/create JSON file: ", err)
 		return C.bool(false)
