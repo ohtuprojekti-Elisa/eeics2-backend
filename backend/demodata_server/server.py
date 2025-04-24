@@ -91,7 +91,7 @@ class DemodataServer:
         self._stream_pause()
         return len(self.connected_clients)
 
-    async def on_message(self, message: str) -> None:
+    async def on_message(self, client: DemoDataWSH, message: str) -> None:
         """Handles messages from clients."""
         try:
             data = json.loads(message)
