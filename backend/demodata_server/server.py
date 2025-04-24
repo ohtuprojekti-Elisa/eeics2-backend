@@ -95,7 +95,7 @@ class DemodataServer:
         """Handles messages from clients."""
         try:
             data = json.loads(message)
-            if data.get("request") == "Give more ticks!":
+            if data.get("request") == "more ticks":
                 self._log(f"{msg.CLIENT_REQUEST_MORE_TICKS}: {data}")
                 ticks = self._gather_ticks(self.burst_size)
                 self._send_burst_data(ticks)
