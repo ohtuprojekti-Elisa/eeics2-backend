@@ -4,6 +4,9 @@ type HeaderData struct {
 	TickRate   float64 `json:"tickrate"`
 	TotalTicks int     `json:"total_ticks"`
 	MapName    string  `json:"map_name"`
+	RoundTime  float64 `json:"round_time"`
+	FreezeTime float64 `json:"freeze_time"`
+	BombTime   float64 `json:"bomb_time"`
 }
 
 type Player struct {
@@ -26,7 +29,6 @@ type Player struct {
 	IsDucking   bool     `json:"is_ducking"`
 	IsWalking   bool     `json:"is_walking"`
 	IsStanding  bool     `json:"is_standing"`
-	MadeFtstp   bool     `json:"made_ftstp"`
 	IsAirborne  bool     `json:"is_air"`
 	IsReloading bool     `json:"is_rld"`
 	Kills       int      `json:"kills"`
@@ -56,29 +58,26 @@ type Nade struct {
 }
 
 type Inferno struct {
-	ID   int64   `json:"id"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
-	Z    float64 `json:"z"`
-	Team string  `json:"team"`
+	ID    int64  `json:"id"`
+	Fires []Fire `json:"fires"`
 }
 
-type InfernoEvent struct {
-	ID int64   `json:"id"`
-	X  float64 `json:"x"`
-	Y  float64 `json:"y"`
-	Z  float64 `json:"z"`
-	// Team string  `json:"team"`
+type Fire struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
 }
 
 type Bomb struct {
-	Carrier     string      `json:"carrier"`
-	X           float64     `json:"x"`
-	Y           float64     `json:"y"`
-	Z           float64     `json:"z"`
-	BombPlanted BombPlanted `json:"planted"` // updated
-	BombDefused BombDefused `json:"defused"` // updated
-	Exploded    bool        `json:"exploded"`
+	Carrier   string  `json:"carrier"`
+	X         float64 `json:"x"`
+	Y         float64 `json:"y"`
+	Z         float64 `json:"z"`
+	Planted   bool    `json:"planted"`
+	Defused   bool    `json:"defused"`
+	Exploded  bool    `json:"exploded"`
+	PlantedBy string  `json:"planted_by"`
+	DefusedBy string  `json:"defused_by"`
 }
 
 type BombPlanted struct {
@@ -113,19 +112,21 @@ type NadeEvent struct {
 }
 
 type Tick struct {
-	Tick           int            `json:"tick"`
-	RoundTime      float64        `json:"round_time"`
-	RoundStarted   bool           `json:"round_start"`
-	TeamT          string         `json:"t"`
-	TeamCT         string         `json:"ct"`
-	TWins          int            `json:"t_wins"`
-	CTWins         int            `json:"ct_wins"`
-	Players        []Player       `json:"players"`
-	Bomb           Bomb           `json:"bomb"`
-	Kills          []Kill         `json:"kills"`
-	Nades          []Nade         `json:"nades"`
-	ShootingEvents []uint64       `json:"shooting"`
-	NadeEvent      NadeEvent      `json:"nade_event"`
-	InfernoEvent   []InfernoEvent `json:"inf_event"`
-	// NadeDestroyEvents []int64        `json:"nade_destroy"`
+	Tick           int        `json:"tick"`
+	RoundTime      float64    `json:"round_time"`
+	RoundStarted   bool       `json:"round_start"`
+	TeamSideSwitch bool       `json:"switch"`
+	IsFreezeTime   bool       `json:"is_freeze"`
+	IsHalfTime     bool       `json:"is_halftime"`
+	TeamT          string     `json:"t"`
+	TeamCT         string     `json:"ct"`
+	TWins          int        `json:"t_wins"`
+	CTWins         int        `json:"ct_wins"`
+	Players        []Player   `json:"players"`
+	ShootingEvents []uint64   `json:"shooting"`
+	Kills          []Kill     `json:"kills"`
+	Nades          []Nade     `json:"nades"`
+	Infernos       []Inferno  `json:"infernos"`
+	NadeEvent      *NadeEvent `json:"nade_event"`
+	Bomb           Bomb       `json:"bomb"`
 }

@@ -10,12 +10,26 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"time"
 
 	demoinfocs "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs"
 	common "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
 	events "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
 )
+
+type MatchState struct {
+	RoundStarted   bool
+	Tick           Tick
+	Bomb           Bomb
+	Players        []Player
+	Nades          []Nade
+	FireEvents     []uint64
+	NadeEvent      NadeEvent
+	Infernos       []Inferno
+	Kills          []Kill
+	TeamSideSwitch bool
+	FirstTick      bool
+	LastTick       int
+}
 
 //export ParseDemo
 func ParseDemo(filename *C.char) C.bool {
@@ -51,251 +65,14 @@ func ParseDemo(filename *C.char) C.bool {
 	parser := demoinfocs.NewParser(demodataFile)
 	defer parser.Close()
 
-	//Player weapon fire
-	var fireEvents []uint64
-	parser.RegisterEventHandler(func(e events.WeaponFire) {
-		if e.Shooter != nil {
-			fireEvents = append(fireEvents, e.Shooter.SteamID64)
-		}
-	})
-
-	//Nade events
-	var nadeEvent NadeEvent
-	parser.RegisterEventHandler(func(e events.GrenadeEventIf) {
-		if e.Base().GrenadeType.String() != "Incendiary Grenade" {
-			nadeEvent = NadeEvent{
-				Type: e.Base().GrenadeType.String(),
-				X:    e.Base().Position.X,
-				Y:    e.Base().Position.Y,
-				Z:    e.Base().Position.Z,
-			}
-		}
-	})
-
-	// Infernos
-	var infernoEvents []InfernoEvent
-	parser.RegisterEventHandler(func(e events.InfernoStart) {
-		for _, inferno := range e.Inferno.Fires().Active().List() {
-			infernoEvents = append(infernoEvents, InfernoEvent{
-				ID: e.Inferno.UniqueID(),
-				X:  inferno.X,
-				Y:  inferno.Y,
-				Z:  inferno.Z,
-			})
-		}
-	})
-
-	var nadeDestroyEvents []int64
-	parser.RegisterEventHandler(func(e events.GrenadeProjectileDestroy) {
-		nadeDestroyEvents = append(nadeDestroyEvents, e.Projectile.UniqueID())
-	})
-
-	// Kill events
-	var kills []Kill
-	parser.RegisterEventHandler(func(e events.Kill) {
-		kills = append(kills, Kill{
-			Killer:            checkPlayerName(e.Killer),
-			Victim:            checkPlayerName(e.Victim),
-			Weapon:            e.Weapon.String(),
-			IsHeadshot:        e.IsHeadshot,
-			PenetratedObjects: e.PenetratedObjects,
-		})
-	})
-
-	// Bomb planted
-	var bombPlanted BombPlanted
-	parser.RegisterEventHandler(func(e events.BombPlanted) {
-		isPlanted := false
-		planterName := ""
-
-		if len(e.Player.Name) > 0 {
-			isPlanted = true
-			planterName = e.Player.Name
-		}
-
-		bombPlanted = BombPlanted{
-			Planted: isPlanted,
-			Planter: planterName,
-		}
-	})
-
-	// Bomb defused
-	var bombDefused BombDefused
-	parser.RegisterEventHandler(func(e events.BombDefused) {
-		isDefused := false
-		defuserName := ""
-
-		if len(e.Player.Name) > 0 {
-			isDefused = true
-			defuserName = e.Player.Name
-		}
-
-		bombDefused = BombDefused{
-			Defused: isDefused,
-			Defuser: defuserName,
-		}
-	})
-
-	// Bomb exploded
-	var bombExploded bool
-	parser.RegisterEventHandler(func(e events.BombExplode) {
-		bombExploded = true
-	})
-
-	// Start of a new round
-	var roundStarted bool
-	parser.RegisterEventHandler(func(e events.RoundStart) {
-		roundStarted = true
-
-		// Reset bomb status
-		bombPlanted = BombPlanted{
-			Planted: false,
-			Planter: "",
-		}
-
-		bombDefused = BombDefused{
-			Defused: false,
-			Defuser: "",
-		}
-	})
-
-	var footStepID uint64
-	footStepID = 0
-	parser.RegisterEventHandler(func(e events.Footstep) {
-		footStepID = e.Player.SteamID64
-	})
+	matchState := MatchState{}
+	matchState.FirstTick = true
+	registerEventHandlers(parser, &matchState, jsonFileTicks)
 
 	// JSON: Write the opening bracket and "ticks" array
 	jsonFileTicks.WriteString("{\"ticks\": [\n")
-	firstTick := true
 
 	// CREATE $_TICKS.JSON
-	var current_time time.Duration
-	var tick Tick
-	parser.RegisterEventHandler(func(e events.FrameDone) {
-		// JSON: write comma after every object, except before the first and after the last one
-
-		// Players
-		var players []Player
-		for _, player := range parser.GameState().Participants().Playing() {
-			if player.IsAlive() {
-				pos := player.Position()
-				players = append(players, Player{
-					SteamID:     player.SteamID64,
-					Name:        player.Name,
-					Clan:        player.TeamState.ClanName(),
-					Team:        teamToString(player.Team),
-					Health:      player.Health(),
-					Money:       player.Money(),
-					X:           pos.X,
-					Y:           pos.Y,
-					Z:           pos.Z,
-					ViewX:       player.ViewDirectionX(),
-					ViewY:       player.ViewDirectionY(),
-					ActvItm:     player.ActiveWeapon().String(),
-					Items:       itemsToStr(player.Weapons()),
-					Helmet:      player.HasHelmet(),
-					Armor:       player.Armor(),
-					Kit:         player.HasDefuseKit(),
-					IsDucking:   player.IsDucking(),
-					IsWalking:   player.IsWalking(),
-					IsStanding:  player.IsStanding(),
-					MadeFtstp:   player.SteamID64 == footStepID,
-					IsReloading: player.IsReloading,
-					IsAirborne:  player.IsAirborne(),
-					Kills:       player.Kills(),
-					Deaths:      player.Deaths(),
-					Assists:     player.Assists(),
-					DMG:         player.TotalDamage(),
-					// avg damage / round
-					ADR:        calculateADR(player.TotalDamage(), parser.GameState().TotalRoundsPlayed()),
-					IsPlanting: player.IsPlanting,
-					IsDefusing: player.IsDefusing,
-				})
-			}
-		}
-
-		// Grenades
-		var nades []Nade
-		for _, nade := range parser.GameState().GrenadeProjectiles() {
-			nades = append(nades, Nade{
-				ID:   nade.UniqueID(),
-				Type: nade.WeaponInstance.Type.String(),
-				X:    nade.Position().X,
-				Y:    nade.Position().Y,
-				Z:    nade.Position().Z,
-				Team: teamToString(nade.Owner.Team),
-			})
-		}
-
-		// var infernos []Inferno
-		// for _, inferno := range parser.GameState().Infernos() {
-		// 	inferno.Fires().Active().List()
-
-		// }
-
-		// Bomb
-		bomb := parser.GameState().Bomb()
-		bombStruct := Bomb{
-			Carrier:     checkPlayerName(bomb.Carrier),
-			X:           bomb.Position().X,
-			Y:           bomb.Position().Y,
-			Z:           bomb.Position().Z,
-			BombPlanted: bombPlanted,
-			BombDefused: bombDefused,
-			Exploded:    bombExploded,
-		}
-
-		round_time := parser.CurrentTime()
-
-		// Tick
-
-		if current_time != round_time {
-
-			if !firstTick {
-				jsonFileTicks.WriteString(",\n")
-			}
-
-			tick = Tick{
-				Tick:           parser.CurrentFrame(),
-				RoundTime:      round_time.Seconds(),
-				RoundStarted:   roundStarted,
-				TeamT:          parser.GameState().TeamTerrorists().ClanName(),
-				TeamCT:         parser.GameState().TeamCounterTerrorists().ClanName(),
-				TWins:          parser.GameState().TeamTerrorists().Score(),
-				CTWins:         parser.GameState().TeamCounterTerrorists().Score(),
-				Players:        players,
-				Bomb:           bombStruct,
-				ShootingEvents: fireEvents,
-				Kills:          kills,
-				Nades:          nades,
-				NadeEvent:      nadeEvent,
-				InfernoEvent:   infernoEvents,
-				// NadeDestroyEvents: nadeDestroyEvents,
-			}
-
-			current_time = round_time
-
-			// JSON: Write the tick
-			tickJSON, err := json.Marshal(tick)
-			if err != nil {
-				log.Panic("Error encoding tick to JSON: ", err)
-			}
-			jsonFileTicks.WriteString(string(tickJSON))
-
-			firstTick = false
-		}
-
-		// Reset before the next tick
-		roundStarted = false
-		kills = nil
-		fireEvents = nil
-		nadeEvent = NadeEvent{}
-		infernoEvents = nil
-		bombExploded = false
-		footStepID = 0
-	})
-
 	// Parse demo to end
 	err = parser.ParseToEnd()
 	if err != nil {
@@ -308,28 +85,292 @@ func ParseDemo(filename *C.char) C.bool {
 
 	// CREATE $_CONFIG.JSON
 	var headerData HeaderData
+
+	rules := parser.GameState().Rules()
+	roundTime, _ := rules.RoundTime()
+	freezeTime, _ := rules.FreezeTime()
+	bombTime, _ := rules.BombTime()
+
 	headerData.TickRate = parser.TickRate()
 	headerData.TotalTicks = parser.Header().PlaybackFrames
 	headerData.MapName = parser.Header().MapName
+	headerData.RoundTime = roundTime.Seconds()
+	headerData.FreezeTime = freezeTime.Seconds()
+	headerData.BombTime = bombTime.Seconds()
+
 	headerDataJSON, err := json.Marshal(headerData)
+
 	if err != nil {
 		log.Panic("Error encoding tick to JSON: ", err)
 	}
+
 	jsonFileConfig.WriteString(string(headerDataJSON))
 
 	// Return status to EEICT (Python)
 	return C.bool(true)
 }
 
-// Converts a list of items to string
-func itemsToStr(items []*common.Equipment) []string {
-	var items_str []string
+func registerEventHandlers(parser demoinfocs.Parser, ms *MatchState, jsonTicks *os.File) {
+	// Player weapon fire
+	parser.RegisterEventHandler(func(e events.WeaponFire) {
+		if e.Shooter != nil {
+			ms.FireEvents = append(ms.FireEvents, e.Shooter.SteamID64)
+		}
+	})
 
-	for _, item := range items {
-		items_str = append(items_str, item.String())
+	parser.RegisterEventHandler(func(e events.HeExplode) {
+		ms.NadeEvent = nadeEventHandler(e.GrenadeEvent)
+	})
+
+	parser.RegisterEventHandler(func(e events.FlashExplode) {
+		ms.NadeEvent = nadeEventHandler(e.GrenadeEvent)
+	})
+
+	parser.RegisterEventHandler(func(e events.SmokeStart) {
+		ms.NadeEvent = nadeEventHandler(e.GrenadeEvent)
+	})
+
+	parser.RegisterEventHandler(func(e events.DecoyStart) {
+		ms.NadeEvent = nadeEventHandler(e.GrenadeEvent)
+	})
+
+	parser.RegisterEventHandler(func(e events.Kill) {
+		ms.Kills = killEventHandler(e)
+	})
+
+	parser.RegisterEventHandler(func(e events.RoundStart) {
+		ms.RoundStarted = true
+
+		// Reset bomb status
+		ms.Bomb = Bomb{}
+	})
+
+	parser.RegisterEventHandler(func(e events.BombPlanted) {
+		ms.Bomb.Planted = true
+		ms.Bomb.PlantedBy = checkPlayerName(e.Player)
+	})
+
+	parser.RegisterEventHandler(func(e events.BombDefused) {
+		ms.Bomb.Defused = true
+		ms.Bomb.DefusedBy = checkPlayerName(e.Player)
+	})
+
+	parser.RegisterEventHandler(func(e events.BombExplode) {
+		ms.Bomb.Exploded = true
+	})
+
+	parser.RegisterEventHandler(func(e events.TeamSideSwitch) {
+		ms.TeamSideSwitch = true
+	})
+
+	// After a frame is done, this handler gets updated.
+	// Frames are NOT stored in JSON, but server ticks are.
+	parser.RegisterEventHandler(func(e events.FrameDone) {
+		if updateTick(parser, ms) {
+			if !ms.FirstTick {
+				jsonTicks.WriteString(",\n")
+			}
+
+			tickJSON, err := json.Marshal(ms.Tick)
+			if err != nil {
+				log.Panic("Error encoding tick to JSON: ", err)
+			}
+			jsonTicks.WriteString(string(tickJSON))
+
+			ms.FirstTick = false
+		}
+
+		// Reset tick data before the next frame
+		ms.RoundStarted = false
+		ms.Players = nil
+		ms.Nades = nil
+		ms.Infernos = nil
+		ms.Kills = nil
+		ms.FireEvents = nil
+		ms.NadeEvent = NadeEvent{}
+	})
+}
+
+func getPlayersInCurrentFrame(parser demoinfocs.Parser) []Player {
+	var players []Player
+	for _, player := range parser.GameState().Participants().Playing() {
+		if player.IsAlive() {
+			pos := player.Position()
+			players = append(players, Player{
+				SteamID:     player.SteamID64,
+				Name:        player.Name,
+				Clan:        player.TeamState.ClanName(),
+				Team:        teamToString(player.Team),
+				Health:      player.Health(),
+				Money:       player.Money(),
+				X:           pos.X,
+				Y:           pos.Y,
+				Z:           pos.Z,
+				ViewX:       player.ViewDirectionX(),
+				ViewY:       player.ViewDirectionY(),
+				ActvItm:     player.ActiveWeapon().String(),
+				Items:       itemsToStr(player.Weapons()),
+				Helmet:      player.HasHelmet(),
+				Armor:       player.Armor(),
+				Kit:         player.HasDefuseKit(),
+				IsDucking:   player.IsDucking(),
+				IsWalking:   player.IsWalking(),
+				IsStanding:  player.IsStanding(),
+				IsReloading: player.IsReloading,
+				IsAirborne:  player.IsAirborne(),
+				Kills:       player.Kills(),
+				Deaths:      player.Deaths(),
+				Assists:     player.Assists(),
+				DMG:         player.TotalDamage(),
+				ADR:         calculateADR(player.TotalDamage(), parser.GameState().TotalRoundsPlayed()),
+				IsPlanting:  player.IsPlanting,
+				IsDefusing:  player.IsDefusing,
+			})
+		}
 	}
 
-	return items_str
+	return players
+}
+
+func getNadesInCurrentFrame(parser demoinfocs.Parser) []Nade {
+	var nades []Nade
+	for _, nade := range parser.GameState().GrenadeProjectiles() {
+		nades = append(nades, Nade{
+			ID:   nade.UniqueID(),
+			Type: nade.WeaponInstance.Type.String(),
+			X:    nade.Position().X,
+			Y:    nade.Position().Y,
+			Z:    nade.Position().Z,
+			Team: teamToString(nade.Owner.Team),
+		})
+	}
+
+	return nades
+}
+
+func getInfernosInCurrentFrame(parser demoinfocs.Parser) []Inferno {
+	var infernos []Inferno
+
+	for _, inferno := range parser.GameState().Infernos() {
+		var fires []Fire
+		id := 0
+
+		for _, fire := range inferno.Fires().Active().List() {
+			fires = append(fires, Fire{
+				X: fire.X,
+				Y: fire.Y,
+				Z: fire.Z,
+			})
+
+			id++
+		}
+
+		infernos = append(infernos, Inferno{
+			ID:    inferno.UniqueID(),
+			Fires: fires,
+		})
+	}
+
+	return infernos
+}
+
+// Updates matchState Tick if the next frame is a new server tick or contains an update.
+func updateTick(parser demoinfocs.Parser, ms *MatchState) bool {
+	currentTick := parser.GameState().IngameTick()
+	matchStarted := parser.GameState().IsMatchStarted()
+
+	// Check if the game tick has updated
+	tickChanged := matchStarted && (currentTick != ms.LastTick ||
+		ms.NadeEvent.Type != "" ||
+		ms.FireEvents != nil ||
+		ms.Kills != nil ||
+		ms.RoundStarted)
+
+	if tickChanged {
+		// Players
+		ms.Players = getPlayersInCurrentFrame(parser)
+
+		// Nades
+		ms.Nades = getNadesInCurrentFrame(parser)
+
+		// Incendiaries/molotovs
+		ms.Infernos = getInfernosInCurrentFrame(parser)
+
+		// Bomb
+		updateBomb(parser, ms)
+
+		ms.Tick = Tick{
+			Tick:           currentTick,
+			RoundTime:      parser.CurrentTime().Seconds(),
+			RoundStarted:   ms.RoundStarted,
+			TeamSideSwitch: ms.TeamSideSwitch,
+			IsFreezeTime:   parser.GameState().IsFreezetimePeriod(),
+			TeamT:          parser.GameState().TeamTerrorists().ClanName(),
+			TeamCT:         parser.GameState().TeamCounterTerrorists().ClanName(),
+			TWins:          parser.GameState().TeamTerrorists().Score(),
+			CTWins:         parser.GameState().TeamCounterTerrorists().Score(),
+			Players:        ms.Players,
+			ShootingEvents: ms.FireEvents,
+			Kills:          ms.Kills,
+			Nades:          ms.Nades,
+			Infernos:       ms.Infernos,
+			Bomb:           ms.Bomb,
+		}
+
+		if ms.NadeEvent.Type != "" {
+			ms.Tick.NadeEvent = &ms.NadeEvent
+		} else {
+			ms.Tick.NadeEvent = nil
+		}
+
+		ms.LastTick = currentTick
+
+		return true
+	}
+
+	return false
+}
+
+func updateBomb(parser demoinfocs.Parser, ms *MatchState) {
+	bombData := parser.GameState().Bomb()
+
+	ms.Bomb.Carrier = checkPlayerName(bombData.Carrier)
+	ms.Bomb.X = bombData.Position().X
+	ms.Bomb.Y = bombData.Position().Y
+	ms.Bomb.Z = bombData.Position().Z
+}
+
+func nadeEventHandler(e events.GrenadeEvent) NadeEvent {
+	return NadeEvent{
+		Type: e.Base().GrenadeType.String(),
+		X:    e.Base().Position.X,
+		Y:    e.Base().Position.Y,
+		Z:    e.Base().Position.Z,
+	}
+}
+
+func killEventHandler(e events.Kill) []Kill {
+	var kills []Kill
+	kills = append(kills, Kill{
+		Killer:            checkPlayerName(e.Killer),
+		Victim:            checkPlayerName(e.Victim),
+		Weapon:            e.Weapon.String(),
+		IsHeadshot:        e.IsHeadshot,
+		PenetratedObjects: e.PenetratedObjects,
+	})
+
+	return kills
+}
+
+// Converts a list of items to string
+func itemsToStr(items []*common.Equipment) []string {
+	var itemsStr []string
+
+	for _, item := range items {
+		itemsStr = append(itemsStr, item.String())
+	}
+
+	return itemsStr
 }
 
 // Checks whether player is nil or not
