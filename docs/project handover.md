@@ -45,6 +45,7 @@ Frontend consists of virtual reality project.
 
 - [weapons](weapons.md)
 - [models_animations](models_anim.md)
+- [PlayerAnimationController](frontend/models_animations/playerAnimationController.md)
 #### Other related documents / files
 #### Researched and resolved problems
 #### Development ideas for frontend
