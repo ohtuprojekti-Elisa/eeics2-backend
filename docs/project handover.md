@@ -20,7 +20,7 @@ Backend consists of CS2 demo data parser and WebSocket server.
 - [OpenShift configs](backend/openshift_configs/openshift_configs.md)
 #### Researched and resolved problems
 
-- [Unity Version Control](unity/Unity%20Version%20Control.md)
+- [Unity Version Control](Unity%20Version%20Control.md)
 - [json_vs_ijson](backend/json_vs_ijson.md)
 #### Development ideas for backend
 - Refactor code and write more in depth tests.
@@ -43,8 +43,8 @@ Frontend consists of virtual reality project.
 - SteamVR
 #### Deployment guide
 
-- [weapons](unity/models_animations/weapons.md)
-- [models_animations](unity/models_animations/models_anim.md)
+- [weapons](weapons.md)
+- [models_animations](models_anim.md)
 #### Other related documents / files
 #### Researched and resolved problems
 #### Development ideas for frontend
