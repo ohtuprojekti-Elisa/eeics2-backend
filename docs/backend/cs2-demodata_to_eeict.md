@@ -1,4 +1,4 @@
-# Transferring CS2 Demo Data to the EEICS2 Application (WIP)
+# Transferring CS2 Demo Data to the EEICS2 Application
 
 Application architecture of the backend described from a developer's perspective.
 ## Architecture Description
