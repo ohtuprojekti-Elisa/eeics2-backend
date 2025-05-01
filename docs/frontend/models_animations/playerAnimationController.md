@@ -1,6 +1,6 @@
 # Current status
 
-`void UpdateAnimation(...)``
+`void UpdateAnimation(...)`
 - Updates all animation states based on the player's current state.
 
 ### Parameters:
