@@ -1,7 +1,7 @@
-# CS2 demodatan siirto EEICT-sovellukseen (WIP)
+# Transferring CS2 Demo Data to the EEICS2 Application (WIP)
 
-Backendin sovellusarkkitehtuuri kuvattuna kehittäjän näkökulmasta.
-## Arkkitehtuurikuvaus
+Application architecture of the backend described from a developer's perspective.
+## Architecture Description
 
 ```mermaid
 
@@ -39,38 +39,47 @@ flowchart TB
     
 ```
 
-## Komponenttien vastuut
+## Component Responsibilities
 
 #### Orchestrator
-- Vastuu: demodatan siirtymisestä eri komponenttien välillä.
-- Ohjelmointikieli: Python
+
+- Responsibility: managing the transfer of demo data between components.
+- Programming language: Python
 
 ### Demodata parser
 
-Ottaa syötteenä Counter Strike 2:n tuottaman demodata tiedoston (\*.dem) ja tuottaa siitä EEICT-sovelluksen käyttöön soveltuvan JSON-tiedoston.
+Takes a demo data file (*.dem) produced by Counter Strike 2 as input and generates a JSON file suitable for use in the EEICT application.
+
 #### Worker
-- Vastuu: demodatan siirtymisestä parserin läpi.
-- Ohjelmointikieli: Python
-#### DemodataToJSON-parser
-- Vastuu: parsii CS2:n tuottaman demodatan JSON muotoon.
-- Ohjelmointikieli: Go
-- Hyödyntää kirjastoa: Demoinfocs-golang (https://github.com/markus-wa/demoinfocs-golang)
-- Tallentaa parsitun JSON-datan saman nimiseen tiedostoon kuin lähdetiedosto.
-- Mahdollisuus määrittää JSON-tiedostoon tulevien tapahtumien määrä/sekunti.
-    - CS2 tukee enimmillään 64/128 tapahtumaa/sekunti, riippuen CS2-palvelimen asetuksista.
-    - Kirjoittaa asetetun intervallin JSON-tiedostoon.
+
+- Responsibility: managing the transfer of demo data through the parser.
+- Programming language: Python
+
+#### DemodataToJSON parser
+
+- Responsibility: parses the demo data produced by CS2 into JSON format.
+- Programming language: Go
+- Utilizes library: Demoinfocs-golang ([https://github.com/markus-wa/demoinfocs-golang](https://github.com/markus-wa/demoinfocs-golang))
+- Saves the parsed JSON data in a file with the same name as the source file.
+- Option to define the number of events per second to be included in the JSON file.
+    - CS2 supports a maximum of 64/128 events per second, depending on CS2 server settings.
+    - Writes the defined interval into the JSON file.
 
 ### Demodata Server
 
-Ottaa syötteenä parserin tuottaman JSON-tiedoston ja lähettää sitä objekti kerrallaan websocket protokollaa hyödyntäen. Toimii myös itsenäisenä, kehittäjän koneella suoritettavana sovelluksena.
+Takes the JSON file produced by the parser as input and sends it object by object using the websocket protocol. Also functions as a standalone application executable on the developer's machine.
+
 #### JSONchopper
-- Vastuu: pilkkoo JSON-tiedoston yksittäisiksi objekteiksi EEICT-sovellukselle siirtoa varten.
-- Ohjelmointikieli: Python
-- Lukee parserilta saadun JSON-tiedoston muistiin.
-- Siirtää JSON-tiedoston datan objekti kerrallaan, aiemmin määritetyllä tapahtumaa/sekunti intervallilla, eteenpäin seuraavalle komponentille.
-- Hyödyntää kirjastoa: Ijson (https://pypi.org/project/ijson/)
+
+- Responsibility: splits the JSON file into individual objects for transfer to the EEICT application.
+- Programming language: Python
+- Reads the JSON file from the parser into memory.
+- Transfers the data from the JSON file one object at a time, using the previously defined events-per-second interval, to the next component.
+- Utilizes library: Ijson ([https://pypi.org/project/ijson/](https://pypi.org/project/ijson/))
+
 #### Websocket-server
-- Vastuu: muodostaa websocket protokollaa hyödyntäen yhteyden backendin ja EEICT-sovelluksen välille.
-- Siirtää JSONchopperilta saatua dataa aiemmin määritetyllä tapahtumaa/sekunti intervallilla (esimerkiksi: 64 t/s = 15.625ms)
-- Ohjelmointikieli: Python
-- Hyödyntää kirjastoa: Tornado (https://www.tornadoweb.org/en/stable/)
+
+- Responsibility: establishes a connection between the backend and the EEICT application using the websocket protocol.
+- Transfers data received from JSONchopper at the previously defined events-per-second interval (example: 64 e/s = 15.625ms)
+- Programming language: Python
+- Utilizes library: Tornado ([https://www.tornadoweb.org/en/stable/](https://www.tornadoweb.org/en/stable/))
