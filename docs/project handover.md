@@ -20,7 +20,7 @@ Backend consists of CS2 demo data parser and WebSocket server.
 - [OpenShift configs](backend/openshift_configs/openshift_configs.md)
 #### Researched and resolved problems
 
-- [Unity Version Control](Unity%20Version%20Control.md)
+- [Unity Version Control](frontend/Unity%20Version%20Control.md)
 - [json_vs_ijson](backend/json_vs_ijson.md)
 #### Development ideas for backend
 - Refactor code and write more in depth tests.
