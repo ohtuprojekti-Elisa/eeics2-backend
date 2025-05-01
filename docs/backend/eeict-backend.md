@@ -1,4 +1,4 @@
-# EEICT - Backend
+# EEICS2 - Backend
 
 Tietoa projektissa käytetyistä järjestelmistä ja niiden yhteistoiminnasta.
 
