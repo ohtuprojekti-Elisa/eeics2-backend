@@ -27,5 +27,18 @@ Its also a good place to store values you need in many different places like ler
 - Can return lerpDuration, a value used for the duration you lerp for ( smoothing from a to b ).
 - Can return the map transform. The point was to not NEED the map anymore and instead use the singleton, but it's used like this somewhere in the code.
 
+## How to use
+For example, to get the lerpDuration:
+
+![image](https://github.com/user-attachments/assets/a683089a-da4a-4755-828d-1d3c38558282)
+
+You can do this anywhere in the code.
+
+Heres the grenade position calculation:
+
+![image](https://github.com/user-attachments/assets/0eb18f25-7633-450b-b5f3-8e23f6333a76)
+
+So "Manager.Instance" followed by method from the manager.
+
 ## Introduced late
 The singleton/manager is somewhat underutilized, as it was not always in use. Some parts of the code use it while others don't.
