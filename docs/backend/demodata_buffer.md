@@ -1,0 +1,5 @@
+# Demodata buffer (WIP)
+
+Both the server and client implement a small buffer for demo data ticks, providing decoupling between the server and client. The previous implementation involved sending and receiving packets by streaming a single packet every 15.625 ms (64 packets per second), with each packet triggering animations on the client side. Essentially, the server acted as the main timer for all client-side events, which (as you can probably see) was not a very efficient method for ensuring stable animation and movement speeds on the client.
+
+Currently, the demodata server sends bursts of 640 ticks per transmission, equivalent to 10 seconds of playable demodata on the client side. The client stores these ticks in its own buffer and plays animation events from this buffer at intervals of 15.625 ms. The server monitors approximately how many ticks remain in the client's buffer and sends another burst when the amount drops below a certain threshold.

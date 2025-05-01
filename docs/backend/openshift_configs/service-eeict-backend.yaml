@@ -1,0 +1,75 @@
+﻿kind: Service
+apiVersion: v1
+metadata:
+  name: eeict-backend
+  namespace: ohtuprojekti-staging
+  uid: 47479dd3-e355-4b1f-818a-bdf6f2fd4a3f
+  resourceVersion: '1661653047'
+  creationTimestamp: '2025-02-07T12:01:11Z'
+  labels:
+    app: eeict-backend
+    app.kubernetes.io/component: eeict-backend
+    app.kubernetes.io/instance: eeict-backend
+    app.kubernetes.io/name: eeict-backend
+    app.kubernetes.io/part-of: elisaohtuprojekti
+    app.openshift.io/runtime: python
+    app.openshift.io/runtime-version: 3.11-ubi8
+  annotations:
+    app.openshift.io/vcs-ref: main
+    app.openshift.io/vcs-uri: 'https://version.helsinki.fi/tebe/eeict-backend'
+    openshift.io/generated-by: OpenShiftWebConsole
+  managedFields:
+    - manager: Mozilla
+      operation: Update
+      apiVersion: v1
+      time: '2025-02-07T12:01:11Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:app.openshift.io/vcs-ref': {}
+            'f:app.openshift.io/vcs-uri': {}
+            'f:openshift.io/generated-by': {}
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:app.kubernetes.io/component': {}
+            'f:app.kubernetes.io/instance': {}
+            'f:app.kubernetes.io/name': {}
+            'f:app.kubernetes.io/part-of': {}
+            'f:app.openshift.io/runtime': {}
+            'f:app.openshift.io/runtime-version': {}
+        'f:spec':
+          'f:internalTrafficPolicy': {}
+          'f:ports':
+            .: {}
+            'k:{"port":3000,"protocol":"TCP"}':
+              .: {}
+              'f:name': {}
+              'f:port': {}
+              'f:protocol': {}
+              'f:targetPort': {}
+          'f:selector': {}
+          'f:sessionAffinity': {}
+          'f:type': {}
+spec:
+  clusterIP: 172.30.89.126
+  ipFamilies:
+    - IPv4
+  ports:
+    - name: 3000-tcp
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+  internalTrafficPolicy: Cluster
+  clusterIPs:
+    - 172.30.89.126
+  type: ClusterIP
+  ipFamilyPolicy: SingleStack
+  sessionAffinity: None
+  selector:
+    app: eeict-backend
+    deploymentconfig: eeict-backend
+status:
+  loadBalancer: {}

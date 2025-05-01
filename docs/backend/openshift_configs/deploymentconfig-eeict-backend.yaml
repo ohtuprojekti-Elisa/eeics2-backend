@@ -1,0 +1,224 @@
+﻿kind: DeploymentConfig
+apiVersion: apps.openshift.io/v1
+metadata:
+  annotations:
+    app.openshift.io/route-disabled: 'false'
+    app.openshift.io/vcs-ref: main
+    app.openshift.io/vcs-uri: 'https://version.helsinki.fi/tebe/eeict-backend'
+    openshift.io/generated-by: OpenShiftWebConsole
+  resourceVersion: '1661662316'
+  name: eeict-backend
+  uid: 53d7990f-4ab2-4ba8-bd67-2afdb869e1b6
+  creationTimestamp: '2025-02-07T12:01:11Z'
+  generation: 5
+  managedFields:
+    - manager: Mozilla
+      operation: Update
+      apiVersion: apps.openshift.io/v1
+      time: '2025-02-07T12:01:43Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:app.openshift.io/route-disabled': {}
+            'f:app.openshift.io/vcs-ref': {}
+            'f:app.openshift.io/vcs-uri': {}
+            'f:openshift.io/generated-by': {}
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:app.kubernetes.io/component': {}
+            'f:app.kubernetes.io/instance': {}
+            'f:app.kubernetes.io/name': {}
+            'f:app.kubernetes.io/part-of': {}
+            'f:app.openshift.io/runtime': {}
+            'f:app.openshift.io/runtime-version': {}
+        'f:spec':
+          'f:replicas': {}
+          'f:selector':
+            .: {}
+            'f:app': {}
+            'f:deploymentconfig': {}
+          'f:strategy':
+            'f:activeDeadlineSeconds': {}
+            'f:rollingParams':
+              .: {}
+              'f:intervalSeconds': {}
+              'f:maxSurge': {}
+              'f:maxUnavailable': {}
+              'f:timeoutSeconds': {}
+              'f:updatePeriodSeconds': {}
+            'f:type': {}
+          'f:template':
+            .: {}
+            'f:metadata':
+              .: {}
+              'f:creationTimestamp': {}
+              'f:labels':
+                .: {}
+                'f:app': {}
+                'f:deploymentconfig': {}
+            'f:spec':
+              .: {}
+              'f:containers':
+                .: {}
+                'k:{"name":"eeict-backend"}':
+                  .: {}
+                  'f:envFrom': {}
+                  'f:imagePullPolicy': {}
+                  'f:name': {}
+                  'f:ports':
+                    .: {}
+                    'k:{"containerPort":8080,"protocol":"TCP"}':
+                      .: {}
+                      'f:containerPort': {}
+                      'f:protocol': {}
+                  'f:resources': {}
+                  'f:terminationMessagePath': {}
+                  'f:terminationMessagePolicy': {}
+              'f:dnsPolicy': {}
+              'f:restartPolicy': {}
+              'f:schedulerName': {}
+              'f:securityContext': {}
+              'f:terminationGracePeriodSeconds': {}
+    - manager: openshift-controller-manager
+      operation: Update
+      apiVersion: apps.openshift.io/v1
+      time: '2025-02-07T12:11:59Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          'f:template':
+            'f:spec':
+              'f:containers':
+                'k:{"name":"eeict-backend"}':
+                  'f:image': {}
+          'f:triggers': {}
+    - manager: openshift-controller-manager
+      operation: Update
+      apiVersion: apps.openshift.io/v1
+      time: '2025-02-07T12:12:16Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          'f:updatedReplicas': {}
+          'f:readyReplicas': {}
+          'f:conditions':
+            .: {}
+            'k:{"type":"Available"}':
+              .: {}
+              'f:lastTransitionTime': {}
+              'f:lastUpdateTime': {}
+              'f:message': {}
+              'f:status': {}
+              'f:type': {}
+            'k:{"type":"Progressing"}':
+              .: {}
+              'f:lastTransitionTime': {}
+              'f:lastUpdateTime': {}
+              'f:message': {}
+              'f:reason': {}
+              'f:status': {}
+              'f:type': {}
+          'f:details':
+            .: {}
+            'f:causes': {}
+            'f:message': {}
+          'f:replicas': {}
+          'f:availableReplicas': {}
+          'f:observedGeneration': {}
+          'f:unavailableReplicas': {}
+          'f:latestVersion': {}
+      subresource: status
+  namespace: ohtuprojekti-staging
+  labels:
+    app: eeict-backend
+    app.kubernetes.io/component: eeict-backend
+    app.kubernetes.io/instance: eeict-backend
+    app.kubernetes.io/name: eeict-backend
+    app.kubernetes.io/part-of: elisaohtuprojekti
+    app.openshift.io/runtime: python
+    app.openshift.io/runtime-version: 3.11-ubi8
+spec:
+  strategy:
+    type: Rolling
+    rollingParams:
+      updatePeriodSeconds: 1
+      intervalSeconds: 1
+      timeoutSeconds: 600
+      maxUnavailable: 25%
+      maxSurge: 25%
+    resources: {}
+    activeDeadlineSeconds: 21600
+  triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - eeict-backend
+        from:
+          kind: ImageStreamTag
+          namespace: ohtuprojekti-staging
+          name: 'eeict-backend:latest'
+        lastTriggeredImage: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend@sha256:6c8d1cc0138f9c9d78546497a2fd8ca76898682479570c8c46dc65112f3ed5c6'
+    - type: ConfigChange
+  replicas: 1
+  revisionHistoryLimit: 10
+  test: false
+  selector:
+    app: eeict-backend
+    deploymentconfig: eeict-backend
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: eeict-backend
+        deploymentconfig: eeict-backend
+    spec:
+      containers:
+        - name: eeict-backend
+          image: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend@sha256:6c8d1cc0138f9c9d78546497a2fd8ca76898682479570c8c46dc65112f3ed5c6'
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: cs-database-secrets
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+status:
+  observedGeneration: 5
+  details:
+    message: image change
+    causes:
+      - type: ImageChange
+        imageTrigger:
+          from:
+            kind: DockerImage
+            name: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend@sha256:6c8d1cc0138f9c9d78546497a2fd8ca76898682479570c8c46dc65112f3ed5c6'
+  availableReplicas: 1
+  unavailableReplicas: 0
+  latestVersion: 3
+  updatedReplicas: 1
+  conditions:
+    - type: Available
+      status: 'True'
+      lastUpdateTime: '2025-02-07T12:03:48Z'
+      lastTransitionTime: '2025-02-07T12:03:48Z'
+      message: Deployment config has minimum availability.
+    - type: Progressing
+      status: 'True'
+      lastUpdateTime: '2025-02-07T12:12:16Z'
+      lastTransitionTime: '2025-02-07T12:12:12Z'
+      reason: NewReplicationControllerAvailable
+      message: replication controller "eeict-backend-3" successfully rolled out
+  replicas: 1
+  readyReplicas: 1

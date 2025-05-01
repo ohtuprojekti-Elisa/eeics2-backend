@@ -1,0 +1,100 @@
+﻿kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  annotations:
+    app.openshift.io/vcs-ref: main
+    app.openshift.io/vcs-uri: 'https://version.helsinki.fi/tebe/eeict-backend'
+    openshift.io/generated-by: OpenShiftWebConsole
+  resourceVersion: '1661659178'
+  name: eeict-backend
+  uid: b4ee4675-f41f-464f-9856-0c33a07913bb
+  creationTimestamp: '2025-02-07T12:01:10Z'
+  generation: 5
+  managedFields:
+    - manager: Mozilla
+      operation: Update
+      apiVersion: build.openshift.io/v1
+      time: '2025-02-07T12:04:59Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:app.openshift.io/vcs-ref': {}
+            'f:app.openshift.io/vcs-uri': {}
+            'f:openshift.io/generated-by': {}
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:app.kubernetes.io/component': {}
+            'f:app.kubernetes.io/instance': {}
+            'f:app.kubernetes.io/name': {}
+            'f:app.kubernetes.io/part-of': {}
+            'f:app.openshift.io/runtime': {}
+            'f:app.openshift.io/runtime-version': {}
+        'f:spec':
+          'f:output':
+            'f:to': {}
+          'f:runPolicy': {}
+          'f:source':
+            'f:contextDir': {}
+            'f:git':
+              .: {}
+              'f:ref': {}
+              'f:uri': {}
+            'f:sourceSecret': {}
+            'f:type': {}
+          'f:strategy':
+            'f:dockerStrategy':
+              .: {}
+              'f:dockerfilePath': {}
+            'f:type': {}
+          'f:triggers': {}
+    - manager: openshift-apiserver
+      operation: Update
+      apiVersion: build.openshift.io/v1
+      time: '2025-02-07T12:09:25Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          'f:lastVersion': {}
+  namespace: ohtuprojekti-staging
+  labels:
+    app: eeict-backend
+    app.kubernetes.io/component: eeict-backend
+    app.kubernetes.io/instance: eeict-backend
+    app.kubernetes.io/name: eeict-backend
+    app.kubernetes.io/part-of: elisaohtuprojekti
+    app.openshift.io/runtime: python
+    app.openshift.io/runtime-version: 3.11-ubi8
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'eeict-backend:latest'
+  resources: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  postCommit: {}
+  source:
+    type: Git
+    git:
+      uri: 'https://version.helsinki.fi/tebe/eeict-backend'
+      ref: main
+    contextDir: /backend/data_processing
+    sourceSecret:
+      name: eeict-backend
+  triggers:
+    - type: ConfigChange
+    - type: GitLab
+      gitlab:
+        secretReference:
+          name: eeict-webhook
+  runPolicy: Serial
+status:
+  lastVersion: 3

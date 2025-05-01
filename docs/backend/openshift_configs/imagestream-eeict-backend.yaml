@@ -1,0 +1,64 @@
+﻿kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  annotations:
+    app.openshift.io/vcs-ref: main
+    app.openshift.io/vcs-uri: 'https://version.helsinki.fi/tebe/eeict-backend'
+    openshift.io/generated-by: OpenShiftWebConsole
+  resourceVersion: '1661661895'
+  name: eeict-backend
+  uid: 36138965-6726-4356-a29f-c5632c899faa
+  creationTimestamp: '2025-02-07T12:01:10Z'
+  generation: 1
+  managedFields:
+    - manager: Mozilla
+      operation: Update
+      apiVersion: image.openshift.io/v1
+      time: '2025-02-07T12:01:10Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:app.openshift.io/vcs-ref': {}
+            'f:app.openshift.io/vcs-uri': {}
+            'f:openshift.io/generated-by': {}
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:app.kubernetes.io/component': {}
+            'f:app.kubernetes.io/instance': {}
+            'f:app.kubernetes.io/name': {}
+            'f:app.kubernetes.io/part-of': {}
+            'f:app.openshift.io/runtime': {}
+            'f:app.openshift.io/runtime-version': {}
+  namespace: ohtuprojekti-staging
+  labels:
+    app: eeict-backend
+    app.kubernetes.io/component: eeict-backend
+    app.kubernetes.io/instance: eeict-backend
+    app.kubernetes.io/name: eeict-backend
+    app.kubernetes.io/part-of: elisaohtuprojekti
+    app.openshift.io/runtime: python
+    app.openshift.io/runtime-version: 3.11-ubi8
+spec:
+  lookupPolicy:
+    local: false
+status:
+  dockerImageRepository: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend'
+  publicDockerImageRepository: registry.apps.ocp-test-0.k8s.it.helsinki.fi/ohtuprojekti-staging/eeict-backend
+  tags:
+    - tag: latest
+      items:
+        - created: '2025-02-07T12:11:59Z'
+          dockerImageReference: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend@sha256:6c8d1cc0138f9c9d78546497a2fd8ca76898682479570c8c46dc65112f3ed5c6'
+          image: 'sha256:6c8d1cc0138f9c9d78546497a2fd8ca76898682479570c8c46dc65112f3ed5c6'
+          generation: 1
+        - created: '2025-02-07T12:08:20Z'
+          dockerImageReference: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend@sha256:36364cc723fa81d5132fc4fd40666a460f738e6591ec445517677f706d6f6bc7'
+          image: 'sha256:36364cc723fa81d5132fc4fd40666a460f738e6591ec445517677f706d6f6bc7'
+          generation: 1
+        - created: '2025-02-07T12:03:38Z'
+          dockerImageReference: 'image-registry.openshift-image-registry.svc:5000/ohtuprojekti-staging/eeict-backend@sha256:f974425d2619e88a6bf266deed683490fae8b53647938ce83ee91c567b02c828'
+          image: 'sha256:f974425d2619e88a6bf266deed683490fae8b53647938ce83ee91c567b02c828'
+          generation: 1

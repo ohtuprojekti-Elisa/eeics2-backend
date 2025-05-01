@@ -1,0 +1,79 @@
+﻿kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: eeict-backend
+  namespace: ohtuprojekti-staging
+  uid: ebee2c50-1105-4936-9122-9466eaaea555
+  resourceVersion: '1661653051'
+  creationTimestamp: '2025-02-07T12:01:11Z'
+  labels:
+    app: eeict-backend
+    app.kubernetes.io/component: eeict-backend
+    app.kubernetes.io/instance: eeict-backend
+    app.kubernetes.io/name: eeict-backend
+    app.kubernetes.io/part-of: elisaohtuprojekti
+    app.openshift.io/runtime: python
+    app.openshift.io/runtime-version: 3.11-ubi8
+  annotations:
+    openshift.io/host.generated: 'true'
+  managedFields:
+    - manager: Mozilla
+      operation: Update
+      apiVersion: route.openshift.io/v1
+      time: '2025-02-07T12:01:11Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:app.kubernetes.io/component': {}
+            'f:app.kubernetes.io/instance': {}
+            'f:app.kubernetes.io/name': {}
+            'f:app.kubernetes.io/part-of': {}
+            'f:app.openshift.io/runtime': {}
+            'f:app.openshift.io/runtime-version': {}
+        'f:spec':
+          'f:port':
+            .: {}
+            'f:targetPort': {}
+          'f:tls':
+            .: {}
+            'f:insecureEdgeTerminationPolicy': {}
+            'f:termination': {}
+          'f:to':
+            'f:kind': {}
+            'f:name': {}
+            'f:weight': {}
+          'f:wildcardPolicy': {}
+    - manager: openshift-router
+      operation: Update
+      apiVersion: route.openshift.io/v1
+      time: '2025-02-07T12:01:11Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          'f:ingress': {}
+      subresource: status
+spec:
+  host: eeict-backend-ohtuprojekti-staging.apps.ocp-test-0.k8s.it.helsinki.fi
+  to:
+    kind: Service
+    name: eeict-backend
+    weight: 100
+  port:
+    targetPort: 3000-tcp
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+status:
+  ingress:
+    - host: eeict-backend-ohtuprojekti-staging.apps.ocp-test-0.k8s.it.helsinki.fi
+      routerName: default
+      conditions:
+        - type: Admitted
+          status: 'True'
+          lastTransitionTime: '2025-02-07T12:01:11Z'
+      wildcardPolicy: None
+      routerCanonicalHostname: router-default.apps.ocp-test-0.k8s.it.helsinki.fi

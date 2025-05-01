@@ -1,0 +1,52 @@
+# Parser data specification
+
+- **Player**
+  - Name
+  - Team
+  - X,Y,Z
+  - Crouch
+  - Jump
+  - HP
+  - Armor HP (?)
+  - Kills
+  - Deaths
+  - Assists
+  - Weapon
+    - Name
+    - Type
+  - Money sum
+  - Carrying
+    - Bomb
+    - Defuse kit
+    - Grenades
+    - Armor
+    - Helmet
+  - KDR (calculated outside)
+  - ADR: Average Damage Per Round (calculated outside)
+  - DMG: the overall amount of damage you’ve dealt to enemy players’ health bars (calculated outside)
+
+- **Team**
+  - Name
+  - Money sum
+  - High/low utility
+    - Sum on grenades bought
+  - Grenade
+    - Trajectory
+
+- Match
+  - Time remining
+  - Rounds
+  - Wins per. round
+  - Total score
+  - Bomb
+    - Planted
+      - State
+    - Defused
+      - State
+    - Planting
+      - Timer
+    - Planted
+      - Timer
+    - Defusing
+      - Timer
+
