@@ -1,6 +1,6 @@
-# EEICT - Project handover
+# EEICS2 - Project handover
 
-This document conducts a quick walkthrough of the Elisa Esports Immersive Coaching Tool (EEICT) -project.
+This document conducts a quick walkthrough of the Elisa Esports Immersive CS2 project.
 ## Backend
 
 Backend consists of CS2 demo data parser and WebSocket server.
@@ -18,7 +18,6 @@ Backend consists of CS2 demo data parser and WebSocket server.
 #### Other related documents / files
 
 - [OpenShift configs](backend/openshift_configs/openshift_configs.md)
-- [demodata_buffer](backend/demodata_buffer.md)
 #### Researched and resolved problems
 
 - [Unity Version Control](unity/Unity%20Version%20Control.md)
