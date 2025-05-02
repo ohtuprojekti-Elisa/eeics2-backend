@@ -1,6 +1,6 @@
-# EEICT - Backend User Guide
+# EEICS2 - Backend User Guide
 
-Instructions for settings up virtual environment, compiling binaries, starting up and using the backend for Elisa Esports Immersive Coaching Tool (EEICT).
+Instructions for settings up virtual environment, compiling binaries, starting up and using the backend for Elisa Esports Immersive CS2 (EEICS2).
 
 ## Compiling the demo data parser
 
